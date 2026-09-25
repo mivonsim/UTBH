@@ -273,6 +273,7 @@ mode = "{}"
 
     #[test]
     fn matmul_close_enough() {
+        let v = validate(&def("matmul", "f32", 400, "approx", Some(1e-4))).unwrap();
         if !v.matched {
             panic!("matmul approx: rel_err={}", v.max_rel_error);
         }
