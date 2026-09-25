@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "run_id": "1790342949-726543",
+  "unix_time": 1790343061,
+  "kind": "fuzz",
+  "suite": "soc",
+  "hardware": {
+    "cpu": {
+      "architecture": "x86_64",
+      "model": "unknown-x86_64",
+      "cores": 8,
+      "threads": 8,
+      "vector": "AVX2",
+      "frequency_mhz": 2100
+    },
+    "cache": [
+      {
+        "level": 1,
+        "kind": "L1D",
+        "size_bytes": 32768
+      },
+      {
+        "level": 1,
+        "kind": "L1I",
+        "size_bytes": 65536
+      },
+      {
+        "level": 2,
+        "kind": "L2",
+        "size_bytes": 524288
+      },
+      {
+        "level": 3,
+        "kind": "L3",
+        "size_bytes": 4194304
+      }
+    ],
+    "memory": {
+      "capacity_bytes": 6148157440,
+      "channels": 1
+    },
+    "gpu": {
+      "name": "gpu0",
+      "compute_units": 0,
+      "fp32": true,
+      "fp16": false,
+      "bf16": false,
+      "int8": false
+    },
+    "interconnect": {
+      "kind": "on-chip",
+      "topology": "unknown"
+    }
+  },
+  "outcomes": [
+    {
+      "name": "fuzz_matmul_15130880334998875822",
+      "category": "gpu.fuzz",
+      "status": "FAIL",
+      "duration_ns": 186813738,
+      "validation": {
+        "mode": "approx",
+        "matched": false,
+        "mismatches": 85849,
+        "first_mismatch": 0,
+        "max_rel_error": 10250.2353515625
+      }
+    },
+    {
+      "name": "fuzz_matmul_7512880415054451316",
+      "category": "gpu.fuzz",
+      "status": "FAIL",
+      "duration_ns": 5901057055,
+      "validation": {
+        "mode": "approx",
+        "matched": false,
+        "mismatches": 753424,
+        "first_mismatch": 0,
+        "max_rel_error": 146709.28125
+      }
+    },
+    {
+      "name": "fuzz_matmul_3148967184850244932",
+      "category": "gpu.fuzz",
+      "status": "FAIL",
+      "duration_ns": 3967499293,
+      "validation": {
+        "mode": "exact",
+        "matched": false,
+        "mismatches": 573049,
+        "first_mismatch": 0,
+        "max_rel_error": 258307.65625
+      }
+    },
+    {
+      "name": "fuzz_matmul_16644797456104931032",
+      "category": "gpu.fuzz",
+      "status": "FAIL",
+      "duration_ns": 405869466,
+      "validation": {
+        "mode": "approx",
+        "matched": false,
+        "mismatches": 164025,
+        "first_mismatch": 0,
+        "max_rel_error": 45152.375
+      }
+    },
+    {
+      "name": "fuzz_matmul_15810029096345493240",
+      "category": "gpu.fuzz",
+      "status": "FAIL",
+      "duration_ns": 6839995726,
+      "validation": {
+        "mode": "approx",
+        "matched": false,
+        "mismatches": 906304,
+        "first_mismatch": 0,
+        "max_rel_error": 52305.69921875
+      }
+    },
+    {
+      "name": "fuzz_matmul_8673288888392624349",
+      "category": "gpu.fuzz",
+      "status": "FAIL",
+      "duration_ns": 1172790577,
+      "validation": {
+        "mode": "approx",
+        "matched": false,
+        "mismatches": 285156,
+        "first_mismatch": 0,
+        "max_rel_error": 77138.25
+      }
+    },
+    {
+      "name": "fuzz_matmul_13470475667570488086",
+      "category": "gpu.fuzz",
+      "status": "FAIL",
+      "duration_ns": 3991914353,
+      "validation": {
+        "mode": "exact",
+        "matched": false,
+        "mismatches": 515524,
+        "first_mismatch": 0,
+        "max_rel_error": 79485.984375
+      }
+    },
+    {
+      "name": "fuzz_matmul_4461306955839112537",
+      "category": "gpu.fuzz",
+      "status": "FAIL",
+      "duration_ns": 4484452402,
+      "validation": {
+        "mode": "exact",
+        "matched": false,
+        "mismatches": 665856,
+        "first_mismatch": 0,
+        "max_rel_error": 140631.28125
+      }
+    },
+    {
+      "name": "fuzz_matmul_10331327878609092014",
+      "category": "gpu.fuzz",
+      "status": "FAIL",
+      "duration_ns": 8516549019,
+      "validation": {
+        "mode": "approx",
+        "matched": false,
+        "mismatches": 1016064,
+        "first_mismatch": 0,
+        "max_rel_error": 353978.34375
+      }
+    },
+    {
+      "name": "fuzz_matmul_17375854276538502165",
+      "category": "gpu.fuzz",
+      "status": "FAIL",
+      "duration_ns": 3451794093,
+      "validation": {
+        "mode": "exact",
+        "matched": false,
+        "mismatches": 515524,
+        "first_mismatch": 0,
+        "max_rel_error": 52182.05078125
+      }
+    },
+    {
+      "name": "fuzz_matmul_11709698235158309847",
+      "category": "gpu.fuzz",
+      "status": "FAIL",
+      "duration_ns": 200265336,
+      "validation": {
+        "mode": "approx",
+        "matched": false,
+        "mismatches": 89401,
+        "first_mismatch": 0,
+        "max_rel_error": 19378.552734375
+      }
+    }
+  ],
+  "fuzz": {
+    "base_seed": 7,
+    "iterations": 32,
+    "passed": 21,
+    "failed": 11
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "run_id": "1790342949-726543",
+  "test": "fuzz_matmul_11709698235158309847",
+  "category": "gpu.fuzz",
+  "events": [
+    {
+      "cycle": 18446744073,
+      "kind": "validation",
+      "detail": "mode=approx mismatches=89401 first_mismatch=Some(0) max_rel_error=1.938e4"
+    },
+    {
+      "cycle": 18446744073,
+      "kind": "test",
+      "detail": "name=fuzz_matmul_11709698235158309847 category=gpu.fuzz op=matmul elements=89469 dtype=f32 seed=Some(2486326198303534040)"
+    },
+    {
+      "cycle": 18446744073,
+      "kind": "memory_access",
+      "detail": "index=0 reference_value=Some(\"0.31747055\")"
+    },
+    {
+      "cycle": 18446744073,
+      "kind": "memory_access",
+      "detail": "index=0 operand_b=Some(\"0.88585025\")"
+    },
+    {
+      "cycle": 18446744073,
+      "kind": "instruction",
+      "detail": "captured via hardware/OS interface"
+    },
+    {
+      "cycle": 18446744073,
+      "kind": "register",
+      "detail": "captured via hardware/OS interface"
+    },
+    {
+      "cycle": 18446744073,
+      "kind": "interrupt",
+      "detail": "captured via hardware/OS interface"
+    },
+    {
+      "cycle": 18446744073,
+      "kind": "dma",
+      "detail": "captured via hardware/OS interface"
+    },
+    {
+      "cycle": 18446744073,
+      "kind": "gpu_command",
+      "detail": "captured via hardware/OS interface"
+    },
+    {
+      "cycle": 18446744073,
+      "kind": "noc_transaction",
+      "detail": "captured via hardware/OS interface"
+    }
+  ]
+}
