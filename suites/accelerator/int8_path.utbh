@@ -1,0 +1,19 @@
+[test]
+name = "accelerator_int8_compare"
+category = "accelerator.quant"
+description = "Jalur kuantisasi INT8 (compare-as-mask) pada accelerator"
+
+[input]
+elements = 2097152
+type = "i64"
+seed = 501
+
+[operation]
+op = "compare"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["throughput", "latency"]
+iterations = 10

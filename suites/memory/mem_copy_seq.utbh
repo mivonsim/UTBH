@@ -1,0 +1,19 @@
+[test]
+name = "mem_copy_seq"
+category = "memory.bandwidth"
+description = "Salin memori akses sekuensial — bandwidth baca/tulis"
+
+[input]
+elements = 4194304
+type = "u64"
+seed = 101
+
+[operation]
+op = "mem_seq"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["latency", "throughput", "bandwidth"]
+iterations = 10

@@ -1,0 +1,4 @@
+/target
+/results/*.utbh-result.json
+/results/*.utbh-trace.json
+/results/.utbh-report.md

@@ -1,0 +1,19 @@
+[test]
+name = "cache_line_churn"
+category = "cache.coherency"
+description = "Working set besar melebihi cache — churning + koherensi"
+
+[input]
+elements = 8388608
+type = "u64"
+seed = 104
+
+[operation]
+op = "mem_rand"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["latency", "bandwidth"]
+iterations = 10

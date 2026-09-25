@@ -1,0 +1,20 @@
+[test]
+name = "matrix_mul_20x20"
+category = "cpu.matrix"
+description = "Perkalian matriks f32 20×20 (400 elemen)"
+
+[input]
+elements = 400
+type = "f32"
+seed = 47
+
+[operation]
+op = "matmul"
+
+[validation]
+mode = "approx"
+tolerance = 1e-4
+
+[benchmark]
+metrics = ["latency", "throughput", "gflops", "cycles"]
+iterations = 10

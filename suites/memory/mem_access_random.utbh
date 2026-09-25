@@ -1,0 +1,19 @@
+[test]
+name = "mem_access_random"
+category = "memory.latency"
+description = "Akses memori pseudo-acak — latency vs sekuensial"
+
+[input]
+elements = 1048576
+type = "u64"
+seed = 102
+
+[operation]
+op = "mem_rand"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["latency", "throughput", "bandwidth"]
+iterations = 10

@@ -1,0 +1,13 @@
+[package]
+name = "utbh-test"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "UTBH Layer 4 — Test Engine (correctness: apakah benar?)"
+
+[dependencies]
+utbh-core = { workspace = true }
+utbh-validation = { workspace = true }
+
+[dev-dependencies]
+toml = { workspace = true }

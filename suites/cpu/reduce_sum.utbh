@@ -1,0 +1,19 @@
+[test]
+name = "integer_reduce_sum"
+category = "cpu.integer"
+description = "Reduksi jumlah u64 — jalur integer wrapping"
+
+[input]
+elements = 2097152
+type = "u64"
+seed = 45
+
+[operation]
+op = "reduce_sum"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["latency", "throughput", "bandwidth"]
+iterations = 10

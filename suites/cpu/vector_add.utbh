@@ -1,0 +1,19 @@
+[test]
+name = "vector_add"
+category = "cpu.vector"
+description = "Penjumlahan dua vektor f32 — correctness + multi-metric benchmark"
+
+[input]
+elements = 1048576
+type = "f32"
+seed = 42
+
+[operation]
+op = "add"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["latency", "throughput", "bandwidth", "cycles"]
+iterations = 10

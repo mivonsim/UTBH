@@ -1,0 +1,20 @@
+[test]
+name = "fma_3operand"
+category = "cpu.vector"
+description = "Fused multiply-add tiga operand (pipeline FP)"
+
+[input]
+elements = 524288
+type = "f32"
+seed = 44
+
+[operation]
+op = "fma"
+
+[validation]
+mode = "approx"
+tolerance = 1e-5
+
+[benchmark]
+metrics = ["latency", "throughput", "gflops"]
+iterations = 10

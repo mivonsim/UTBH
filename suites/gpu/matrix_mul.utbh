@@ -1,0 +1,20 @@
+[test]
+name = "gpu_matrix_mul"
+category = "gpu.matrix"
+description = "Perkalian matriks — compute unit throughput"
+
+[input]
+elements = 4096
+type = "f32"
+seed = 202
+
+[operation]
+op = "matmul"
+
+[validation]
+mode = "approx"
+tolerance = 1e-3
+
+[benchmark]
+metrics = ["latency", "gflops"]
+iterations = 5

@@ -1,0 +1,19 @@
+[test]
+name = "soc_cpu_gpu_path"
+category = "soc.dataflow"
+description = "Alur data CPU→GPU→kembali — konsistensi lintas unit"
+
+[input]
+elements = 1048576
+type = "f32"
+seed = 402
+
+[operation]
+op = "add"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["latency", "bandwidth"]
+iterations = 10

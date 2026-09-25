@@ -1,0 +1,19 @@
+[test]
+name = "soc_dma_pattern"
+category = "soc.dma"
+description = "Pola transfer menyerupai DMA antar unit — konsistensi data"
+
+[input]
+elements = 4194304
+type = "u64"
+seed = 401
+
+[operation]
+op = "copy"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["bandwidth", "latency"]
+iterations = 10

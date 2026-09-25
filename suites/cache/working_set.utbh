@@ -1,0 +1,19 @@
+[test]
+name = "cache_working_set"
+category = "cache.capacity"
+description = "Working set kecil yang muat di L1/L2 — cache hit pattern"
+
+[input]
+elements = 2048
+type = "u64"
+seed = 103
+
+[operation]
+op = "mem_seq"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["latency", "throughput"]
+iterations = 20

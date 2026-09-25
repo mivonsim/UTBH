@@ -1,0 +1,19 @@
+[test]
+name = "noc_contention"
+category = "interconnect.contention"
+description = "Akses acak serentak — contention & fairness jalur NoC"
+
+[input]
+elements = 4194304
+type = "u64"
+seed = 302
+
+[operation]
+op = "mem_rand"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["latency", "bandwidth"]
+iterations = 10

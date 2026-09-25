@@ -1,0 +1,10 @@
+[package]
+name = "utbh-discovery"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "UTBH Layer 2 — Hardware Discovery"
+
+[dependencies]
+utbh-core = { workspace = true }
+utbh-api = { workspace = true }

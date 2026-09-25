@@ -1,0 +1,13 @@
+[package]
+name = "utbh-fuzz"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "UTBH Fuzz Engine — random workload + minimizer"
+
+[dependencies]
+utbh-core = { workspace = true }
+utbh-test = { workspace = true }
+toml = { workspace = true }
+
+[dev-dependencies]

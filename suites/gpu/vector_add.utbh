@@ -1,0 +1,19 @@
+[test]
+name = "gpu_vector_add"
+category = "gpu.vector"
+description = "Kernel vektor-add — FP32 compute path"
+
+[input]
+elements = 1048576
+type = "f32"
+seed = 201
+
+[operation]
+op = "add"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["latency", "throughput", "bandwidth"]
+iterations = 10

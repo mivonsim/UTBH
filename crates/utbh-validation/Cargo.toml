@@ -1,0 +1,13 @@
+[package]
+name = "utbh-validation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "UTBH Layer 6 — Differential Validation (execution vs reference)"
+
+[dependencies]
+utbh-core = { workspace = true }
+utbh-workload = { workspace = true }
+
+[dev-dependencies]
+toml = { workspace = true }

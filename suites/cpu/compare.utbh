@@ -1,0 +1,19 @@
+[test]
+name = "integer_compare"
+category = "cpu.branch"
+description = "Perbandingan elemen per elemen — pola prediksi branch"
+
+[input]
+elements = 1048576
+type = "u64"
+seed = 46
+
+[operation]
+op = "compare"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["latency", "throughput"]
+iterations = 10

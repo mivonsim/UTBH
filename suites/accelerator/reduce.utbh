@@ -1,0 +1,20 @@
+[test]
+name = "accelerator_reduce"
+category = "accelerator.reduce"
+description = "Reduksi throughput pada unit akseleserat"
+
+[input]
+elements = 4194304
+type = "f32"
+seed = 502
+
+[operation]
+op = "reduce_sum"
+
+[validation]
+mode = "approx"
+tolerance = 1e-4
+
+[benchmark]
+metrics = ["throughput", "latency", "bandwidth"]
+iterations = 10

@@ -1,0 +1,9 @@
+[package]
+name = "utbh-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "UTBH Layer 1 — Hardware API, satu-satunya jendela UTBH ke hardware"
+
+[dependencies]
+utbh-core = { workspace = true }

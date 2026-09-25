@@ -1,0 +1,23 @@
+[package]
+name = "utbh-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "UTBH CLI — discover / test / benchmark / fuzz / run / report / trace"
+
+[[bin]]
+name = "utbh"
+path = "src/main.rs"
+
+[dependencies]
+utbh-core = { workspace = true }
+utbh-api = { workspace = true }
+utbh-discovery = { workspace = true }
+utbh-workload = { workspace = true }
+utbh-validation = { workspace = true }
+utbh-test = { workspace = true }
+utbh-benchmark = { workspace = true }
+utbh-fuzz = { workspace = true }
+utbh-trace = { workspace = true }
+clap = { workspace = true }
+serde_json = { workspace = true }

@@ -1,0 +1,15 @@
+[package]
+name = "utbh-trace"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "UTBH Layer 7 — Trace untuk kasus FAIL"
+
+[dependencies]
+utbh-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+utbh-api = { workspace = true }
+
+[dev-dependencies]
+toml = { workspace = true }

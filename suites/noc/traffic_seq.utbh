@@ -1,0 +1,19 @@
+[test]
+name = "noc_traffic_seq"
+category = "interconnect.bandwidth"
+description = "Traffic sekuensial lewat NoC — bandwidth antar-node"
+
+[input]
+elements = 2097152
+type = "u64"
+seed = 301
+
+[operation]
+op = "mem_seq"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["bandwidth", "latency"]
+iterations = 10

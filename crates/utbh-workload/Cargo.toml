@@ -1,0 +1,12 @@
+[package]
+name = "utbh-workload"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "UTBH Layer 3 — Workload Engine (integer, FP, vector, matrix, memory, multicore)"
+
+[dependencies]
+utbh-core = { workspace = true }
+
+[dev-dependencies]
+toml = { workspace = true }
