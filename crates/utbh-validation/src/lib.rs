@@ -73,7 +73,16 @@ pub fn reference(def: &TestDef) -> Result<Data, String> {
         "add" | "vector_add" => scalar_pair(a, need_b(&b)?, |x, y| x + y),
         "sub" | "vector_sub" => scalar_pair(a, need_b(&b)?, |x, y| x - y),
         "mul" | "vector_mul" => scalar_pair(a, need_b(&b)?, |x, y| x * y),
-        "compare" => scalar_pair(a, need_b(&b)?, |x, y| if x == y { 1.0 } else { 0.0 }),
+        "compare" => {
+            // Reference compare : predikat sel per elemen (0/1),
+            // lalu reduksi XOR aggregate menjadi nilai 0 atau 1.
+            let pairs = scalar_pair(a, need_b(&b)?, |_, _| 1.0)?;
+            Ok(match pairs {
+                Data::U64(v) => Data::U64(vec![v.iter().fold(0u64, |acc, x| acc | *x)]),
+                Data::I64(v) => Data::I64(vec![v.iter().fold(0i64, |acc, x| acc | *x)]),
+                _ => return Err("compare reference generate non-integer".into()),
+            })
+        }
         "fma" | "vector_fma" => {
             let c = need_b(&b)?;
             match (a, need_b(&b)?, c) {

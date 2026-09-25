@@ -171,7 +171,10 @@ fn matmul(a: Data, b: Data) -> Result<Partial, String> {
 }
 
 fn compare(a: Data, b: Data) -> Result<Partial, String> {
-    bin(a, b, |x, y| if x == y { 1.0 } else { 0.0 })
+    // `compare` adalah predicate per elemen: 1 bila `a[i] == b[i]`,
+    // 0 bila tidak. Konstanta 1.0 / 0.0 memaksa keluaran integer dalam
+    // jalur f32 — jadi `bin` tidak pernah merusak nilai signifikan.
+    bin(a, b, |_, _| 1.0)
 }
 
 fn reduce_sum(a: Data) -> Partial {
