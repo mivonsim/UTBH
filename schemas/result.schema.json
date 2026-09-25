@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "utbh://schemas/result.schema.json",
+  "title": "UTBH Run Result",
+  "description": "Output satu run: <run-id>.utbh-result.json (utbh_core::RunResult). MUST stay in sync with utbh-core types.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run_id", "unix_time", "kind", "suite", "hardware", "outcomes"],
+  "properties": {
+    "schema_version": { "type": "integer" },
+    "run_id": { "type": "string" },
+    "unix_time": { "type": "integer" },
+    "kind": { "type": "string" },
+    "suite": { "type": "string" },
+    "hardware": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cpu", "cache", "memory", "interconnect"],
+      "properties": {
+        "cpu": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["architecture", "model", "cores", "threads", "vector", "frequency_mhz"],
+          "properties": {
+            "architecture": { "type": "string" },
+            "model": { "type": "string" },
+            "cores": { "type": "integer" },
+            "threads": { "type": "integer" },
+            "vector": { "type": "string" },
+            "frequency_mhz": { "type": "integer" }
+          }
+        },
+        "cache": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["level", "kind", "size_bytes"],
+            "properties": {
+              "level": { "type": "integer" },
+              "kind": { "type": "string" },
+              "size_bytes": { "type": "integer" }
+            }
+          }
+        },
+        "memory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["capacity_bytes", "channels"],
+          "properties": {
+            "capacity_bytes": { "type": "integer" },
+            "channels": { "type": "integer" }
+          }
+        },
+        "gpu": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "compute_units", "fp32", "fp16", "bf16", "int8"],
+          "properties": {
+            "name": { "type": "string" },
+            "compute_units": { "type": "integer" },
+            "fp32": { "type": "boolean" },
+            "fp16": { "type": "boolean" },
+            "bf16": { "type": "boolean" },
+            "int8": { "type": "boolean" }
+          }
+        },
+        "interconnect": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "topology"],
+          "properties": {
+            "kind": { "type": "string" },
+            "topology": { "type": "string" }
+          }
+        }
+      }
+    },
+    "outcomes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "category", "status", "duration_ns"],
+        "properties": {
+          "name": { "type": "string" },
+          "category": { "type": "string" },
+          "status": { "type": "string", "enum": ["PASS", "FAIL"] },
+          "duration_ns": { "type": "integer" },
+          "validation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode", "matched", "mismatches", "first_mismatch", "max_rel_error"],
+            "properties": {
+              "mode": { "type": "string" },
+              "matched": { "type": "boolean" },
+              "mismatches": { "type": "integer" },
+              "first_mismatch": { "type": ["integer", "null"] },
+              "max_rel_error": { "type": "number" }
+            }
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "value", "unit"],
+              "properties": {
+                "name": { "type": "string" },
+                "value": { "type": "number" },
+                "unit": { "type": "string" }
+              }
+            }
+          },
+          "error": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "fuzz": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base_seed", "iterations", "passed", "failed"],
+      "properties": {
+        "base_seed": { "type": "integer" },
+        "iterations": { "type": "integer" },
+        "passed": { "type": "integer" },
+        "failed": { "type": "integer" }
+      }
+    }
+  }
+}

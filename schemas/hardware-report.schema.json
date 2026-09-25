@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "utbh://schemas/hardware-report.schema.json",
+  "title": "UTBH Hardware Report",
+  "description": "Laporan hardware (utbh_core::HardwareReport) yang dibaca melalui HardwareApi (Layer 1/2). MUST stay in sync with utbh-core types.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["cpu", "cache", "memory", "interconnect"],
+  "properties": {
+    "cpu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["architecture", "model", "cores", "threads", "vector", "frequency_mhz"],
+      "properties": {
+        "architecture": { "type": "string" },
+        "model": { "type": "string" },
+        "cores": { "type": "integer" },
+        "threads": { "type": "integer" },
+        "vector": { "type": "string" },
+        "frequency_mhz": { "type": "integer" }
+      }
+    },
+    "cache": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["level", "kind", "size_bytes"],
+        "properties": {
+          "level": { "type": "integer" },
+          "kind": { "type": "string" },
+          "size_bytes": { "type": "integer" }
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["capacity_bytes", "channels"],
+      "properties": {
+        "capacity_bytes": { "type": "integer" },
+        "channels": { "type": "integer" }
+      }
+    },
+    "gpu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "compute_units", "fp32", "fp16", "bf16", "int8"],
+      "properties": {
+        "name": { "type": "string" },
+        "compute_units": { "type": "integer" },
+        "fp32": { "type": "boolean" },
+        "fp16": { "type": "boolean" },
+        "bf16": { "type": "boolean" },
+        "int8": { "type": "boolean" }
+      }
+    },
+    "interconnect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "topology"],
+      "properties": {
+        "kind": { "type": "string" },
+        "topology": { "type": "string" }
+      }
+    }
+  }
+}

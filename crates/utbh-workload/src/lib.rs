@@ -171,10 +171,9 @@ fn matmul(a: Data, b: Data) -> Result<Partial, String> {
 }
 
 fn compare(a: Data, b: Data) -> Result<Partial, String> {
-    // `compare` adalah predicate per elemen: 1 bila `a[i] == b[i]`,
-    // 0 bila tidak. Konstanta 1.0 / 0.0 memaksa keluaran integer dalam
-    // jalur f32 — jadi `bin` tidak pernah merusak nilai signifikan.
-    bin(a, b, |_, _| 1.0)
+    // Predikat per-elemen: 1 bila a[i]==b[i], 0 bila tidak. Keluaran integer
+    // (1.0/0.0) memusa jalur f32 memerankan pola branch — bukan nilai asli.
+    bin(a, b, |p, q| if p == q { 1.0 } else { 0.0 })
 }
 
 fn reduce_sum(a: Data) -> Partial {
@@ -282,5 +281,13 @@ mode = "exact"
         let o = execute(&d).unwrap();
         let inp = utbh_core::inputs(&d);
         assert_eq!(o.data, inp.a);
+    }
+
+    #[test]
+    fn compare_is_binary_predicate() {
+        // compare = predikat per-elemen 0/1, panjang sama vektor (b perlu ada).
+        let d = def("compare", "u64", 64);
+        let o = execute(&d).unwrap();
+        assert_eq!(o.data.len(), 64);
     }
 }

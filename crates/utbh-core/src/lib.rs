@@ -176,7 +176,13 @@ pub fn inputs(def: &TestDef) -> Inputs {
     let seed = def.input.seed.unwrap_or_else(|| fnv1a(&def.test.name));
     let n = def.input.elements.max(1);
     let a = gen_data(&def.input.dtype, seed, n);
-    let needs_b = matches!(def.operation.op.as_str(), "add" | "mul" | "matmul");
+    // `b` untuk setiap op bi-operand (add, sub, mul, fma, matmul, compare).
+    // Default: nyen unary = binary — list unary ops stabil & kecil, jadi carixa
+    // di antara bi-operand langsung. Sincha dengan `utbh_workload::Op::binary`.
+    let needs_b = !matches!(
+        def.operation.op.as_str(),
+        "reduce_sum" | "reduce" | "copy" | "memcopy" | "mem_seq" | "seq" | "mem_rand" | "rand"
+    );
     let b = needs_b.then(|| gen_data(&def.input.dtype, seed ^ 0xA5A5_A5A5_A5A5_A5A5, n));
     Inputs { a, b }
 }
@@ -468,6 +474,116 @@ pub fn now_unix() -> u64 {
         .as_secs()
 }
 
+// ---------------------------------------------------------------------------
+// JSON-Schema subset validator — enforce AGENTS aturan #8 (schemas/ ↔ types)
+// ---------------------------------------------------------------------------
+
+/// Validat satu value JSON per subschema JSON-Schema (subset: `type`,
+/// `properties`+`required`+`additionalProperties:false`, `items`).
+/// Mengembalikan daftar error (kosong = valid).
+pub fn validate_against_schema(
+    json: &serde_json::Value,
+    schema: &serde_json::Value,
+) -> Vec<String> {
+    let mut errors = Vec::new();
+    check_value(json, schema, "$", &mut errors);
+    errors
+}
+
+fn check_value(v: &serde_json::Value, s: &serde_json::Value, path: &str, err: &mut Vec<String>) {
+    let so = s.as_object().unwrap_or_default();
+
+    // --- type (string | array-of-strings) ---
+    if let Some(tv) = so.get("type") {
+        let allowed: Vec<String> = match tv.as_str() {
+            Some(ts) => vec![ts],
+            None => tv
+                .as_array()
+                .unwrap_or_default()
+                .map(|x| x.as_str().expect("type elemen string"))
+                .collect(),
+        };
+        if !allowed.iter().any(|t| type_allows(v, t.as_str())) {
+            err.push(format!("{}: type mismatch (got {})", path, type_name(v)));
+        }
+    }
+
+    // --- object: required + properties ---
+    if let Some(o) = v.as_object() {
+        for r in so.get("required").and_then(|r| r.as_array()).unwrap_or_default() {
+            let rk = r.as_str().expect("required elemen string");
+            if o.get(rk).is_none() {
+                err.push(format!("{}: missing field '{}'", path, rk));
+            }
+        }
+        let props = so.get("properties").and_then(|p| p.as_object()).unwrap_or_default();
+        if so.get("additionalProperties").and_then(|a| a.as_bool()).unwrap_or(true) == false {
+            for k in o.keys() {
+                if props.get(k.as_str()).is_none() {
+                    err.push(format!("{}: field '{}' tidak di schema", path, k.as_str()));
+                }
+            }
+        }
+        for k in props.keys() {
+            let kk = k.as_str();
+            if let Some(ov) = o.get(kk) {
+                if let Some(sub) = props.get(kk) {
+                    check_value(ov, sub, format!("{}.{}", path, kk), err);
+                }
+            }
+        }
+    }
+
+    // --- array: items ---
+    if let Some(arr) = v.as_array() {
+        if let Some(items) = so.get("items") {
+            for (i, el) in arr.iter().enumerate() {
+                check_value(el, items, format!("{}[{}]", path, i), err);
+            }
+        }
+    }
+}
+
+fn type_allows(v: &serde_json::Value, t: &'static str) -> bool {
+    match t {
+        "string" => v.as_str().is_some(),
+        "boolean" => v.as_bool().is_some(),
+        "array" => v.as_array().is_some(),
+        "object" => v.as_object().is_some(),
+        "null" => is_json_null(v),
+        "integer" => v.as_u64().is_some(),
+        "number" => v.as_u64().is_some() || v.as_f64().is_some(),
+        _ => true,
+    }
+}
+
+fn is_json_null(v: &serde_json::Value) -> bool {
+    v.as_u64().is_none()
+        && v.as_f64().is_none()
+        && v.as_str().is_none()
+        && v.as_bool().is_none()
+        && v.as_array().is_none()
+        && v.as_object().is_none()
+}
+
+fn type_name(v: &serde_json::Value) -> String {
+    if v.as_u64().is_some() {
+        "integer".into()
+    } else if v.as_f64().is_some() {
+        "number".into()
+    } else if v.as_str().is_some() {
+        "string".into()
+    } else if v.as_bool().is_some() {
+        "boolean".into()
+    } else if v.as_array().is_some() {
+        "array".into()
+    } else if v.as_object().is_some() {
+        "object".into()
+    } else {
+        "null".into()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -514,6 +630,54 @@ metrics = ["latency", "throughput"]
         assert!(a.b.is_some());
     }
 
+    /// Bina operands kivedi `b` (regresija: fma & compare pernah hilang `b`).
+    #[test]
+    fn binary_ops_generate_second_operand() {
+        for op in ["sub", "fma", "compare"] {
+            let s = format!(
+                r#"
+[test]
+name = "t_{}"
+category = "cpu"
+[input]
+elements = 64
+type = "f32"
+[operation]
+op = "{}"
+[validation]
+mode = "exact"
+"#,
+                op, op
+            );
+            let def: TestDef = toml::from_str(&s).unwrap();
+            assert!(inputs(&def).b.is_some(), "op '{}' nilupku b", op);
+        }
+    }
+
+    /// Unary operands (memory & reduce) jangan generate `b`.
+    #[test]
+    fn unary_ops_skip_second_operand() {
+        for op in ["reduce_sum", "copy", "mem_seq", "mem_rand"] {
+            let s = format!(
+                r#"
+[test]
+name = "t_{}"
+category = "cpu"
+[input]
+elements = 64
+type = "f32"
+[operation]
+op = "{}"
+[validation]
+mode = "exact"
+"#,
+                op, op
+            );
+            let def: TestDef = toml::from_str(&s).unwrap();
+            assert!(inputs(&def).b.is_none(), "op '{}' harus tanpa b", op);
+        }
+    }
+
     #[test]
     fn rng_reproducible() {
         let mut r1 = Rng::new(42);
@@ -526,5 +690,140 @@ metrics = ["latency", "throughput"]
     #[test]
     fn schema_version_pinned() {
         assert_eq!(SCHEMA_VERSION, 1);
+    }
+
+    // ------------------------------------------------------------------
+    // Schema conformance (AGENTS #8): actual data ↔ schemas/*.schema.json
+    // ------------------------------------------------------------------
+
+    fn find_schema(name: &str) -> PathBuf {
+        let mut dir = Path::new(".");
+        for _ in 0..4 {
+            let cand = dir.join("schemas").join(name);
+            if cand.exists() {
+                return cand;
+            }
+            dir = dir.parent().unwrap_or(dir);
+        }
+        panic!("schema file '{}' tidak ditemukan dari cwd", name)
+    }
+
+    fn schema_from_file(path: &Path) -> serde_json::Value {
+        let bytes = std::fs::read(path).expect("read schema");
+        serde_json::from_slice::<serde_json::Value>(&bytes).expect("parse schema json")
+    }
+
+    #[test]
+    fn schema_test_def_conforms() {
+        let schema = schema_from_file(&find_schema("test-def.schema.json"));
+        let def: TestDef = toml::from_str(SAMPLE).unwrap();
+        let json = serde_json::from_slice::<serde_json::Value>(
+            &serde_json::to_vec_pretty(&def).unwrap()
+        )
+        .unwrap();
+        let errs = validate_against_schema(&json, &schema);
+        assert!(errs.is_empty(), "test-def vs schema: {:?}", errs);
+    }
+
+    #[test]
+    fn schema_hardware_report_conforms() {
+        let schema = schema_from_file(&find_schema("hardware-report.schema.json"));
+        let hw = HardwareReport {
+            cpu: CpuReport {
+                architecture: "x86_64".into(),
+                model: "m".into(),
+                cores: 8,
+                threads: 8,
+                vector: "AVX2".into(),
+                frequency_mhz: 2100,
+            },
+            cache: vec![CacheLevel {
+                level: 1,
+                kind: "L1D".into(),
+                size_bytes: 32768,
+            }],
+            memory: MemoryReport { capacity_bytes: 1 << 30, channels: 1 },
+            gpu: None,
+            interconnect: InterconnectReport { kind: "on-chip".into(), topology: "unknown".into() },
+        };
+        let json = serde_json::from_slice::<serde_json::Value>(
+            &serde_json::to_vec_pretty(&hw).unwrap()
+        )
+        .unwrap();
+        let errs = validate_against_schema(&json, &schema);
+        assert!(errs.is_empty(), "hardware vs schema: {:?}", errs);
+    }
+
+    #[test]
+    fn schema_run_result_conforms() {
+        let schema = schema_from_file(&find_schema("result.schema.json"));
+        let r = RunResult {
+            schema_version: SCHEMA_VERSION,
+            run_id: "r1".into(),
+            unix_time: 1,
+            kind: "test".into(),
+            suite: "cpu".into(),
+            hardware: HardwareReport {
+                cpu: CpuReport {
+                    architecture: "x86_64".into(),
+                    model: "m".into(),
+                    cores: 8,
+                    threads: 8,
+                    vector: "AVX2".into(),
+                    frequency_mhz: 2100,
+                },
+                cache: vec![],
+                memory: MemoryReport { capacity_bytes: 1024, channels: 1 },
+                gpu: None,
+                interconnect: InterconnectReport { kind: "on-chip".into(), topology: "unknown".into() },
+            },
+            outcomes: vec![TestOutcome {
+                name: "vector_add".into(),
+                category: "cpu.vector".into(),
+                status: Status::Pass,
+                duration_ns: 123,
+                validation: Some(ValidationInfo {
+                    mode: "exact".into(),
+                    matched: true,
+                    mismatches: 0,
+                    first_mismatch: None,
+                    max_rel_error: 0.0,
+                }),
+                metrics: vec![Metric { name: "latency".into(), value: 12.5, unit: "ns".into() }],
+                error: None,
+            }],
+            fuzz: None,
+        };
+        let json = serde_json::from_slice::<serde_json::Value>(
+            &serde_json::to_vec_pretty(&r).unwrap()
+        )
+        .unwrap();
+        let errs = validate_against_schema(&json, &schema);
+        assert!(errs.is_empty(), "run-result vs schema: {:?}", errs);
+    }
+
+    #[test]
+    fn schema_detects_unknown_field() {
+        // Guard regresija: field ekstera wajib di-catch (additionalProperties=false).
+        let schema = schema_from_file(&find_schema("result.schema.json"));
+        let r = RunResult {
+            schema_version: SCHEMA_VERSION,
+            run_id: "r".into(),
+            unix_time: 1,
+            kind: "test".into(),
+            suite: "cpu".into(),
+            hardware: HardwareReport::default(),
+            outcomes: vec![],
+            fuzz: None,
+        };
+        let mut text = String::from_utf8_lossy(&serde_json::to_vec_pretty(&r).unwrap());
+        text = text.replace("\"schema_version\"", "\"bogus_extra_field\":1,\"schema_version\"");
+        let json = serde_json::from_slice::<serde_json::Value>(text.as_bytes()).unwrap();
+        let errs = validate_against_schema(&json, &schema);
+        assert!(
+            errs.iter().any(|e| e.contains("bogus_extra_field")),
+            "harus detect field ekstera: {:?}",
+            errs
+        );
     }
 }
