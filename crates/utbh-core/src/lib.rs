@@ -510,14 +510,26 @@ fn check_value(v: &serde_json::Value, s: &serde_json::Value, path: &str, err: &m
 
     // --- object: required + properties ---
     if let Some(o) = v.as_object() {
-        for r in so.get("required").and_then(|r| r.as_array()).unwrap_or_default() {
+        for r in so
+            .get("required")
+            .and_then(|r| r.as_array())
+            .unwrap_or_default()
+        {
             let rk = r.as_str().expect("required elemen string");
             if o.get(rk).is_none() {
                 err.push(format!("{}: missing field '{}'", path, rk));
             }
         }
-        let props = so.get("properties").and_then(|p| p.as_object()).unwrap_or_default();
-        if so.get("additionalProperties").and_then(|a| a.as_bool()).unwrap_or(true) == false {
+        let props = so
+            .get("properties")
+            .and_then(|p| p.as_object())
+            .unwrap_or_default();
+        if so
+            .get("additionalProperties")
+            .and_then(|a| a.as_bool())
+            .unwrap_or(true)
+            == false
+        {
             for k in o.keys() {
                 if props.get(k.as_str()).is_none() {
                     err.push(format!("{}: field '{}' tidak di schema", path, k.as_str()));
@@ -717,10 +729,9 @@ mode = "exact"
     fn schema_test_def_conforms() {
         let schema = schema_from_file(&find_schema("test-def.schema.json"));
         let def: TestDef = toml::from_str(SAMPLE).unwrap();
-        let json = serde_json::from_slice::<serde_json::Value>(
-            &serde_json::to_vec_pretty(&def).unwrap()
-        )
-        .unwrap();
+        let json =
+            serde_json::from_slice::<serde_json::Value>(&serde_json::to_vec_pretty(&def).unwrap())
+                .unwrap();
         let errs = validate_against_schema(&json, &schema);
         assert!(errs.is_empty(), "test-def vs schema: {:?}", errs);
     }
@@ -742,14 +753,19 @@ mode = "exact"
                 kind: "L1D".into(),
                 size_bytes: 32768,
             }],
-            memory: MemoryReport { capacity_bytes: 1 << 30, channels: 1 },
+            memory: MemoryReport {
+                capacity_bytes: 1 << 30,
+                channels: 1,
+            },
             gpu: None,
-            interconnect: InterconnectReport { kind: "on-chip".into(), topology: "unknown".into() },
+            interconnect: InterconnectReport {
+                kind: "on-chip".into(),
+                topology: "unknown".into(),
+            },
         };
-        let json = serde_json::from_slice::<serde_json::Value>(
-            &serde_json::to_vec_pretty(&hw).unwrap()
-        )
-        .unwrap();
+        let json =
+            serde_json::from_slice::<serde_json::Value>(&serde_json::to_vec_pretty(&hw).unwrap())
+                .unwrap();
         let errs = validate_against_schema(&json, &schema);
         assert!(errs.is_empty(), "hardware vs schema: {:?}", errs);
     }
@@ -773,9 +789,15 @@ mode = "exact"
                     frequency_mhz: 2100,
                 },
                 cache: vec![],
-                memory: MemoryReport { capacity_bytes: 1024, channels: 1 },
+                memory: MemoryReport {
+                    capacity_bytes: 1024,
+                    channels: 1,
+                },
                 gpu: None,
-                interconnect: InterconnectReport { kind: "on-chip".into(), topology: "unknown".into() },
+                interconnect: InterconnectReport {
+                    kind: "on-chip".into(),
+                    topology: "unknown".into(),
+                },
             },
             outcomes: vec![TestOutcome {
                 name: "vector_add".into(),
@@ -789,15 +811,18 @@ mode = "exact"
                     first_mismatch: None,
                     max_rel_error: 0.0,
                 }),
-                metrics: vec![Metric { name: "latency".into(), value: 12.5, unit: "ns".into() }],
+                metrics: vec![Metric {
+                    name: "latency".into(),
+                    value: 12.5,
+                    unit: "ns".into(),
+                }],
                 error: None,
             }],
             fuzz: None,
         };
-        let json = serde_json::from_slice::<serde_json::Value>(
-            &serde_json::to_vec_pretty(&r).unwrap()
-        )
-        .unwrap();
+        let json =
+            serde_json::from_slice::<serde_json::Value>(&serde_json::to_vec_pretty(&r).unwrap())
+                .unwrap();
         let errs = validate_against_schema(&json, &schema);
         assert!(errs.is_empty(), "run-result vs schema: {:?}", errs);
     }
@@ -817,7 +842,10 @@ mode = "exact"
             fuzz: None,
         };
         let mut text = String::from_utf8_lossy(&serde_json::to_vec_pretty(&r).unwrap());
-        text = text.replace("\"schema_version\"", "\"bogus_extra_field\":1,\"schema_version\"");
+        text = text.replace(
+            "\"schema_version\"",
+            "\"bogus_extra_field\":1,\"schema_version\"",
+        );
         let json = serde_json::from_slice::<serde_json::Value>(text.as_bytes()).unwrap();
         let errs = validate_against_schema(&json, &schema);
         assert!(
