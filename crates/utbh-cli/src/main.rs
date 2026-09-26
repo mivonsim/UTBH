@@ -14,6 +14,7 @@
 
 mod args;
 mod compare;
+mod list;
 mod printer;
 mod profile;
 mod report;

@@ -35,11 +35,6 @@ impl Profile {
         serde_json::from_str(&text).map_err(|e| format!("{}: {}", path.display(), e))
     }
 
-    /// Suite pertama dalam profil (CLI positional tetap menang bila diisi).
-    pub fn primary_suite(&self) -> Option<&str> {
-        self.suites.first().map(String::as_str)
-    }
-
     /// Validasi nilai yang harus positif.
     pub fn validate(&self) -> Result<(), String> {
         if let Some(0) = self.iterations {
@@ -60,14 +55,18 @@ impl Profile {
         Ok(())
     }
 
-    /// Resolusi suite: flag eksplisit > suite profil > `"universal"`.
+    /// Resolusi suite: flag eksplisit > semua suite profil > `["universal"]`.
     ///
-    /// `flag == None` → pakai suite profil (atau `universal` kalau tanpa profil).
-    pub fn resolve_suite_opt(prof: Option<&Profile>, flag: Option<&str>) -> String {
+    /// `flag == None` → semua suite dalam profil (atau `universal` kalau
+    /// tanpa profil).
+    pub fn resolve_suite_opt(prof: Option<&Profile>, flag: Option<&str>) -> Vec<String> {
         if let Some(s) = flag {
-            return s.to_string();
+            return vec![s.to_string()];
         }
-        prof.and_then(|p| p.primary_suite()).unwrap_or("universal").to_string()
+        match prof {
+            Some(p) if !p.suites.is_empty() => p.suites.clone(),
+            _ => vec!["universal".to_string()],
+        }
     }
 
     /// Resolusi nilai numerik: flag eksplisit > profil > default.
@@ -106,9 +105,15 @@ mod tests {
     }
 
     #[test]
-    fn primary_suite() {
+    fn resolve_suite_prefers_flag_then_all_profile_suites() {
         let p = Profile { suites: vec!["cpu".into(), "gpu".into()], ..Default::default() };
-        assert_eq!(p.primary_suite(), Some("cpu"));
-        assert_eq!(Profile::default().primary_suite(), None);
+        // Flag menang.
+        assert_eq!(Profile::resolve_suite_opt(Some(&p), Some("memory")), vec!["memory"]);
+        // Tanpa flag → semua suite profil.
+        assert_eq!(Profile::resolve_suite_opt(Some(&p), None), vec!["cpu", "gpu"]);
+        // Tanpa profil → universal.
+        assert_eq!(Profile::resolve_suite_opt(None, None), vec!["universal"]);
+        // Profil kosong → universal.
+        assert_eq!(Profile::resolve_suite_opt(Some(&Profile::default()), None), vec!["universal"]);
     }
 }

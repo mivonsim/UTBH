@@ -1,0 +1,19 @@
+[test]
+name = "parallel_reduce_sum"
+category = "cpu.multicore"
+description = "Partial sum per thread digabung — multicore reduce, wrapping u64 asosiatif"
+
+[input]
+elements = 4194304
+type = "u64"
+seed = 62
+
+[operation]
+op = "parallel_sum"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["latency", "throughput"]
+iterations = 10

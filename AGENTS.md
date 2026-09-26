@@ -52,6 +52,7 @@ Test didefinisikan **data-driven** di `suites/**/**.utbh` (TOML). Menambah test
 cargo build --release          # build (di dalam VM)
 cargo test                     # unit test
 ./target/release/utbh discover
+./target/release/utbh list                 # daftar semua suite + test
 ./target/release/utbh test cpu
 ./target/release/utbh benchmark memory
 ./target/release/utbh run universal
@@ -60,6 +61,7 @@ cargo test                     # unit test
 ./target/release/utbh report
 ./target/release/utbh compare <file-a.utbh-result.json> <file-b.utbh-result.json>
 ./target/release/utbh trace <run-id>
+./target/release/utbh --profile configs/ci.json run   # preset parameter
 ```
 
 Suite dipilih dari folder di `suites/`: `cpu`, `gpu`, `memory`, `cache`, `noc`,
@@ -88,6 +90,10 @@ Suite dipilih dari folder di `suites/`: `cpu`, `gpu`, `memory`, `cache`, `noc`,
 
 ## Menambah workload op baru
 
-1. Tambahkan varian di `utbh-workload` (`Op` enum + `execute`).
+1. Tambahkan varian di `utbh-workload` (`Op` enum + `exec` serial atau
+   `exec_parallel` untuk atomik/multicore).
 2. Tambahkan reference implementation yang setara di `utbh-validation`.
-3. Tambahkan unit test di kedua crate (harus kompatibel sebelum merge).
+3. Kalau operasi floating-point non-associatif (sum paralel, matmul, FMA),
+   paksa `mode = approx` di fuzz generator (`utbh-fuzz/generate.rs`) —
+   `exact` untuk kasus begini = false positive, bukan bug hardware.
+4. Tambahkan unit test di kedua crate (harus kompatibel sebelum merge).

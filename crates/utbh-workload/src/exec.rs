@@ -35,6 +35,8 @@ pub fn execute(def: &TestDef) -> Result<WorkloadOutput, String> {
         Op::Copy => copy(a),
         Op::MemSeq => mem_pattern(a, false),
         Op::MemRand => mem_pattern(a, true),
+        Op::AtomicAdd => Partial { data: crate::exec_parallel::atomic_add(def, a)? },
+        Op::ParallelSum => Partial { data: crate::exec_parallel::parallel_sum(a)? },
     };
 
     let elements = out.data.len() as u64;

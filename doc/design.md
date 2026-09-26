@@ -366,6 +366,7 @@ Tidak ada: `mivon-vm/`, `verilator/`, `rtl-backend/`, `host-runner/`.
 
 ```sh
 utbh discover
+utbh list                    # daftar semua suite + test
 utbh test <suite>            # cpu | gpu | soc | ...
 utbh benchmark <suite>
 utbh run universal           # test + benchmark semua suite
@@ -424,6 +425,8 @@ Mivon Hardware VM
       GPU khusus menunggu Hardware API compute Mivon)
 - [x] M4: Fuzz engine + minimizer + trace FAIL (`utbh fuzz`, `utbh trace`)
 - [x] M4b: Stress engine (`utbh stress`) + perbandingan run (`utbh compare`)
+- [x] M4c: Atomic correctness (`atomic_add`) + multicore reduce (`parallel_sum`),
+      `utbh list`, CI (`.github/workflows/ci.yml`)
 - [ ] M5: Differential validation vs RTL reference (butuh jalur reference
       dari Mivon OS — saat ini reference = implementasi independen di UTBH)
 - [ ] M6: Perbandingan hasil VM → FPGA → ASIC lewat `utbh compare`

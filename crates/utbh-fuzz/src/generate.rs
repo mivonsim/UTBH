@@ -25,12 +25,13 @@ pub fn gen_def(suite: &str, ops: &[&str], rng: &mut Rng, seed: u64) -> TestDef {
         elements = elements.min(4096);
     }
     let mode = if r4 % 3 == 0 { "exact" } else { "approx" };
-    // matmul/fma butuh f32.
+    // matmul/fma butuh f32; atomic_add butuh u64 (fetch_add atomik).
     let dtype = if matches!(op, "matmul" | "fma") { "f32" } else { dtype };
+    let dtype = if op == "atomic_add" { "u64" } else { dtype };
     // Floating point non-associatif: urutan akumulasi / kontrak FMA berbeda
     // antara jalur workload dan reference → `exact` = false positive, bukan
     // bug hardware. Kasus ini wajib `approx`.
-    let mode = if dtype == "f32" && matches!(op, "reduce_sum" | "matmul" | "fma") {
+    let mode = if dtype == "f32" && matches!(op, "reduce_sum" | "matmul" | "fma" | "parallel_sum") {
         "approx"
     } else {
         mode
@@ -74,6 +75,7 @@ fn suite_category(op: &str, suite: &str) -> String {
     let fallback = match op {
         "copy" | "mem_seq" | "mem_rand" => "memory",
         "matmul" => "gpu",
+        "atomic_add" | "parallel_sum" => "cpu",
         _ => "cpu",
     };
     // Suite eksplisit menang (report per suite akurat).

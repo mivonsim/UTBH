@@ -32,6 +32,8 @@ pub struct Cli {
 pub enum Command {
     /// Layer 2 — deteksi kemampuan hardware.
     Discover,
+    /// Daftar semua suite + test (tanpa menjalankan apa pun).
+    List,
     /// Layer 4 — correctness: apakah hardware benar? (PASS/FAIL)
     Test {
         /// Nama suite (folder di `suites/`), `all` / `universal`,

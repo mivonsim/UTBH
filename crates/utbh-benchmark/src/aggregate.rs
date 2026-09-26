@@ -14,7 +14,7 @@ pub fn count_flops(def: &TestDef, elements: u64) -> u64 {
             let n = (elements as f64).sqrt().floor() as u64;
             2u64.saturating_mul(n.saturating_mul(n).saturating_mul(n))
         }
-        Ok(Op::ReduceSum) | Ok(Op::Compare) => elements,
+        Ok(Op::ReduceSum) | Ok(Op::Compare) | Ok(Op::AtomicAdd) | Ok(Op::ParallelSum) => elements,
         _ => 0,
     }
 }

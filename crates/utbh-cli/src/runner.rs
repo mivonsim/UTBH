@@ -30,7 +30,7 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
         None => None,
     };
     let prof = profile.as_ref();
-    let suite_of = |flag: &Option<String>| -> String {
+    let suites_of = |flag: &Option<String>| -> Vec<String> {
         crate::profile::Profile::resolve_suite_opt(prof, flag.as_deref())
     };
 
@@ -40,15 +40,23 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
             print!("{}", format_report(&d));
             ExitCode::SUCCESS
         }
+        Command::List => match crate::list::render(&cli.suites) {
+            Ok(text) => {
+                print!("{}", text);
+                ExitCode::SUCCESS
+            }
+            Err(e) => fail(&e),
+        },
         Command::Test { suite } => {
-            let suite = suite_of(&suite);
+            let suites = suites_of(&suite);
+            let label = suite_label(&suites);
             let run_id = utbh_core::new_run_id();
-            match load(&cli.suites, &suite) {
+            match load_multi(&cli.suites, &suites) {
                 Ok(defs) => {
                     let outcomes = utbh_test::run_all(&defs);
                     print_test_results(&outcomes);
                     save_traces(&defs, &outcomes, &api, &cli.results, &run_id);
-                    save_run(&cli.results, &run_id, "test", &suite, &api, &outcomes, None);
+                    save_run(&cli.results, &run_id, "test", &label, &api, &outcomes, None);
                     finish(&outcomes)
                 }
                 Err(e) => fail(&e),
@@ -59,15 +67,13 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
             iterations,
             warmup,
         } => {
-            let suite = suite_of(&suite);
-            let iterations = crate::profile::Profile::resolve(
-                iterations,
-                prof.and_then(|p| p.iterations),
-                10,
-            );
+            let suites = suites_of(&suite);
+            let label = suite_label(&suites);
+            let iterations =
+                crate::profile::Profile::resolve(iterations, prof.and_then(|p| p.iterations), 10);
             let warmup = crate::profile::Profile::resolve(warmup, prof.and_then(|p| p.warmup), 3);
             let run_id = utbh_core::new_run_id();
-            match load(&cli.suites, &suite) {
+            match load_multi(&cli.suites, &suites) {
                 Ok(defs) => {
                     let cfg = utbh_benchmark::BenchConfig { warmup, iterations };
                     // Benchmark selalu bersama correctness — jangan ukur yang salah.
@@ -85,7 +91,7 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                         &cli.results,
                         &run_id,
                         "benchmark",
-                        &suite,
+                        &label,
                         &api,
                         &outcomes,
                         None,
@@ -100,12 +106,13 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
             iterations,
             warmup,
         } => {
-            let suite = suite_of(&suite);
+            let suites = suites_of(&suite);
+            let label = suite_label(&suites);
             let iterations =
                 crate::profile::Profile::resolve(iterations, prof.and_then(|p| p.iterations), 10);
             let warmup = crate::profile::Profile::resolve(warmup, prof.and_then(|p| p.warmup), 3);
             let run_id = utbh_core::new_run_id();
-            match load(&cli.suites, &suite) {
+            match load_multi(&cli.suites, &suites) {
                 Ok(defs) => {
                     let cfg = utbh_benchmark::BenchConfig { warmup, iterations };
                     let mut outcomes = Vec::new();
@@ -118,7 +125,7 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                     }
                     print_test_results(&outcomes);
                     save_traces(&defs, &outcomes, &api, &cli.results, &run_id);
-                    save_run(&cli.results, &run_id, "run", &suite, &api, &outcomes, None);
+                    save_run(&cli.results, &run_id, "run", &label, &api, &outcomes, None);
                     finish(&outcomes)
                 }
                 Err(e) => fail(&e),
@@ -129,18 +136,35 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
             seed,
             iterations,
         } => {
-            let suite = suite_of(&suite);
+            let suites = suites_of(&suite);
             let iterations =
                 crate::profile::Profile::resolve(iterations, prof.and_then(|p| p.fuzz_iterations), 64);
             let run_id = utbh_core::new_run_id();
             let cfg = utbh_fuzz::FuzzConfig { seed, iterations };
-            let report = utbh_fuzz::fuzz(&suite, &cfg);
 
             println!(
-                "UTBH Fuzz — suite={} seed={} iterations={}",
-                suite, seed, iterations
+                "UTBH Fuzz — suites={} seed={} iterations={}",
+                suites.join("+"),
+                seed,
+                iterations
             );
-            for c in &report.cases {
+            // Scope fuzz per suite — jalankan tiap suite, gabung hasil.
+            let mut passed = 0usize;
+            let mut failed = 0usize;
+            let mut minimized = 0usize;
+            let mut all_cases = Vec::new();
+            for (i, s) in suites.iter().enumerate() {
+                // Seed per suite beda tapi deterministik dari seed dasar.
+                let suite_cfg =
+                    utbh_fuzz::FuzzConfig { seed: seed.wrapping_add(i as u64), ..cfg };
+                let report = utbh_fuzz::fuzz(s, &suite_cfg);
+                passed += report.passed;
+                failed += report.failed;
+                minimized += report.minimized_count();
+                all_cases.extend(report.cases);
+            }
+
+            for c in &all_cases {
                 if !c.passed {
                     println!("  FAIL  {} (seed={})", c.def.test.name, c.seed);
                     if let Some(m) = &c.minimized {
@@ -153,14 +177,11 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
             }
             println!(
                 "\nFuzz result: {} PASS / {} FAIL / {} minimized",
-                report.passed,
-                report.failed,
-                report.minimized_count()
+                passed, failed, minimized
             );
 
             // Setiap kasus FAIL → trace.
-            let outcomes: Vec<TestOutcome> = report
-                .cases
+            let outcomes: Vec<TestOutcome> = all_cases
                 .iter()
                 .filter(|c| !c.passed)
                 .map(|c| {
@@ -174,27 +195,28 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
 
             let summary = utbh_core::FuzzSummary {
                 base_seed: seed,
-                iterations,
-                passed: report.passed,
-                failed: report.failed,
+                iterations: iterations * suites.len(),
+                passed,
+                failed,
             };
             save_run(
                 &cli.results,
                 &run_id,
                 "fuzz",
-                &suite,
+                &suites.join("+"),
                 &api,
                 &outcomes,
                 Some(summary),
             );
-            if report.failed > 0 {
+            if failed > 0 {
                 ExitCode::FAILURE
             } else {
                 ExitCode::SUCCESS
             }
         }
         Command::Stress { suite, iterations, window } => {
-            let suite = suite_of(&suite);
+            let suites = suites_of(&suite);
+            let label = suite_label(&suites);
             let iterations = crate::profile::Profile::resolve(
                 iterations,
                 prof.and_then(|p| p.stress_iterations),
@@ -206,12 +228,14 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                 20,
             );
             let run_id = utbh_core::new_run_id();
-            match load(&cli.suites, &suite) {
+            match load_multi(&cli.suites, &suites) {
                 Ok(defs) => {
                     let cfg = utbh_stress::StressConfig { iterations, window };
                     println!(
-                        "UTBH Stress — suite={} iterations={} window={}",
-                        suite, iterations, window
+                        "UTBH Stress — suites={} iterations={} window={}",
+                        suites.join("+"),
+                        iterations,
+                        window
                     );
                     let mut reports = Vec::new();
                     for def in &defs {
@@ -236,7 +260,7 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                             );
                         }
                     }
-                    save_run(&cli.results, &run_id, "stress", &suite, &api, &outcomes, None);
+                    save_run(&cli.results, &run_id, "stress", &label, &api, &outcomes, None);
                     finish(&outcomes)
                 }
                 Err(e) => fail(&e),
@@ -283,6 +307,30 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
 
 fn load(root: &Path, suite: &str) -> Result<Vec<TestDef>, String> {
     utbh_core::load_suite(root, suite)
+}
+
+/// Load beberapa suite (`all`/`universal` di dalam daftar = semua), hasil
+/// digabung tanpa duplikat nama test.
+fn load_multi(root: &Path, suites: &[String]) -> Result<Vec<TestDef>, String> {
+    let mut all = Vec::new();
+    for s in suites {
+        all.extend(load(root, s)?);
+    }
+    all.sort_by(|a, b| a.test.name.cmp(&b.test.name));
+    all.dedup_by(|a, b| a.test.name == b.test.name);
+    if all.is_empty() {
+        return Err(format!("tidak ada test dari suite {:?}", suites));
+    }
+    Ok(all)
+}
+
+/// Label suite untuk laporan (`cpu+cache`, `universal`, ...).
+fn suite_label(suites: &[String]) -> String {
+    if suites.len() == 1 {
+        suites[0].clone()
+    } else {
+        suites.join("+")
+    }
 }
 
 /// Tulis trace untuk setiap outcome FAIL (Layer 7).

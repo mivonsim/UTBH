@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Test
+        run: cargo test
+
+      # UTBH berjalan sebagai guest tool — di CI ini dijalankan langsung di
+      # runner (bukan VM) sebagai smoke test harness-nya sendiri.
+      - name: Smoke — discover
+        run: ./target/release/utbh discover
+
+      - name: Smoke — list
+        run: ./target/release/utbh list
+
+      - name: Smoke — CI profile
+        run: ./target/release/utbh --profile configs/ci.json run
+
+      - name: Smoke — fuzz
+        run: ./target/release/utbh fuzz cpu --seed 1 --iterations 16

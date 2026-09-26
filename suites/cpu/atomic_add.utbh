@@ -1,0 +1,19 @@
+[test]
+name = "atomic_add_race"
+category = "cpu.atomic"
+description = "Banyak thread fetch_add ke shared counter — atomic correctness (lost update = FAIL)"
+
+[input]
+elements = 1000000
+type = "u64"
+seed = 61
+
+[operation]
+op = "atomic_add"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["latency", "throughput"]
+iterations = 10

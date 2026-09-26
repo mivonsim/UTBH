@@ -22,8 +22,10 @@ pub const DTYPES: &[&str] = &["f32", "u64", "i64"];
 /// Kategori fuzz target → scope operasi (sesuai `utbh fuzz <suite>`).
 pub fn scope(suite: &str) -> Vec<&'static str> {
     match suite {
-        "cpu" | "cpu.*" => vec!["add", "sub", "mul", "fma", "reduce_sum", "compare"],
-        "memory" | "cache" => vec!["copy", "mem_seq", "mem_rand", "reduce_sum"],
+        "cpu" | "cpu.*" => {
+            vec!["add", "sub", "mul", "fma", "reduce_sum", "compare", "atomic_add", "parallel_sum"]
+        }
+        "memory" | "cache" => vec!["copy", "mem_seq", "mem_rand", "reduce_sum", "parallel_sum"],
         "gpu" => vec!["add", "mul", "fma", "matmul"],
         "soc" | "interconnect" | "noc" => vec!["copy", "mem_seq", "mem_rand", "matmul"],
         _ => OPS.to_vec(),

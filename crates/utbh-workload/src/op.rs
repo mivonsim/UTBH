@@ -14,6 +14,10 @@ pub enum Op {
     /// Pola akses memory: seq | rand — untuk latency/bandwidth test.
     MemSeq,
     MemRand,
+    /// Atomic correctness: banyak thread fetch_add ke shared counter.
+    AtomicAdd,
+    /// Multicore reduce: partial sum per thread, digabung.
+    ParallelSum,
 }
 
 impl Op {
@@ -29,6 +33,8 @@ impl Op {
             "copy" | "memcopy" => Op::Copy,
             "mem_seq" | "seq" => Op::MemSeq,
             "mem_rand" | "rand" => Op::MemRand,
+            "atomic_add" => Op::AtomicAdd,
+            "parallel_sum" | "multicore_sum" => Op::ParallelSum,
             other => return Err(format!("op '{}' tidak dikenal workload engine", other)),
         })
     }

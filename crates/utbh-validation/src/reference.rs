@@ -35,6 +35,17 @@ pub fn reference(def: &TestDef) -> Result<Data, String> {
             Data::I64(v) => Data::I64(vec![v.iter().fold(0i64, |s, x| s.wrapping_add(*x))]),
         }),
         "copy" | "memcopy" | "mem_seq" | "seq" | "mem_rand" | "rand" => Ok(a),
+        // Reference serial — deterministik vs jalur paralel (wrapping u64/i64
+        // asosiatif; f32 sekunder, suite memakai u64).
+        "atomic_add" => Ok(match a {
+            Data::U64(v) => Data::U64(vec![v.iter().fold(0u64, |s, x| s.wrapping_add(*x))]),
+            _ => return Err("atomic_add reference hanya u64".into()),
+        }),
+        "parallel_sum" | "multicore_sum" => Ok(match a {
+            Data::U64(v) => Data::U64(vec![v.iter().fold(0u64, |s, x| s.wrapping_add(*x))]),
+            Data::I64(v) => Data::I64(vec![v.iter().fold(0i64, |s, x| s.wrapping_add(*x))]),
+            Data::F32(v) => Data::F32(vec![v.iter().fold(0f32, |s, x| s + x)]),
+        }),
         other => Err(format!("op '{}' tidak punya reference", other)),
     }
 }
