@@ -11,3 +11,5 @@ utbh-test = { workspace = true }
 toml = { workspace = true }
 
 [dev-dependencies]
+utbh-workload = { workspace = true }
+utbh-validation = { workspace = true }

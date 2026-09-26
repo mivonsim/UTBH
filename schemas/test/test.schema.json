@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mivonsim.github.io/utbh/schemas/test/test.schema.json",
+  "title": "UTBH Test Definition",
+  "description": "Satu test definition (dideklarasikan sebagai TOML *.utbh, di-serialize ke JSON ini saat diekspor). Skema ini sinkron dengan tipe di crates/utbh-core/src/testdef.rs.",
+  "type": "object",
+  "required": ["test", "input", "operation", "validation"],
+  "additionalProperties": false,
+  "properties": {
+    "test": {
+      "type": "object",
+      "required": ["name", "category"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "category": { "type": "string", "minLength": 1 },
+        "description": { "type": "string", "default": "" }
+      }
+    },
+    "input": {
+      "type": "object",
+      "required": ["elements"],
+      "additionalProperties": false,
+      "properties": {
+        "elements": { "type": "integer", "minimum": 1 },
+        "type": { "type": "string", "enum": ["f32", "u64", "i64"], "default": "f32" },
+        "seed": { "type": ["integer", "null"], "default": null }
+      }
+    },
+    "operation": {
+      "type": "object",
+      "required": ["op"],
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "type": "string",
+          "description": "Nama operasi yang dipahami workload engine.",
+          "examples": ["add", "sub", "mul", "fma", "matmul", "reduce_sum", "compare", "copy", "mem_seq", "mem_rand"]
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["exact", "approx", "none"],
+          "description": "exact = identik; approx = tolerance; none = tanpa validasi (hindari)."
+        },
+        "tolerance": { "type": ["number", "null"], "minimum": 0 }
+      }
+    },
+    "benchmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "default": { "metrics": [], "iterations": 5 },
+      "properties": {
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["latency", "latency_min", "throughput", "bandwidth", "cycles", "gflops"]
+          },
+          "default": []
+        },
+        "iterations": { "type": "integer", "minimum": 1, "default": 5 }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "ci",
+  "description": "CI gate — deterministik, cepat, fuzz cukup untuk tangkap regresi.",
+  "suites": ["cpu", "cache"],
+  "iterations": 2,
+  "warmup": 1,
+  "fuzz_iterations": 32,
+  "stress_iterations": 10,
+  "stress_window": 5
+}

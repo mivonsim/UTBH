@@ -306,12 +306,14 @@ name = "utbh-cli"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "serde",
  "serde_json",
  "utbh-api",
  "utbh-benchmark",
  "utbh-core",
  "utbh-discovery",
  "utbh-fuzz",
+ "utbh-stress",
  "utbh-test",
  "utbh-trace",
  "utbh-validation",
@@ -342,6 +344,18 @@ dependencies = [
  "toml",
  "utbh-core",
  "utbh-test",
+ "utbh-validation",
+ "utbh-workload",
+]
+
+[[package]]
+name = "utbh-stress"
+version = "0.1.0"
+dependencies = [
+ "toml",
+ "utbh-api",
+ "utbh-core",
+ "utbh-validation",
 ]
 
 [[package]]

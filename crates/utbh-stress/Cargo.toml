@@ -1,0 +1,14 @@
+[package]
+name = "utbh-stress"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "UTBH Stress Engine — stability / degradation testing (benar terus-menerus?)"
+
+[dependencies]
+utbh-core = { workspace = true }
+utbh-api = { workspace = true }
+utbh-validation = { workspace = true }
+
+[dev-dependencies]
+toml = { workspace = true }

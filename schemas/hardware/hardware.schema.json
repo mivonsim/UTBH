@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mivonsim.github.io/utbh/schemas/hardware/hardware.schema.json",
+  "title": "UTBH Hardware Report",
+  "description": "Laporan hardware hasil Layer 1 (Hardware API) + Layer 2 (Discovery). UTBH melihat hardware apa adanya — tanpa konsep VM. Skema ini sinkron dengan tipe di crates/utbh-core/src/hardware.rs.",
+  "type": "object",
+  "required": ["cpu", "cache", "memory", "interconnect"],
+  "additionalProperties": false,
+  "properties": {
+    "cpu": {
+      "type": "object",
+      "required": ["architecture", "model", "cores", "threads", "vector", "frequency_mhz"],
+      "additionalProperties": false,
+      "properties": {
+        "architecture": { "type": "string" },
+        "model": { "type": "string" },
+        "cores": { "type": "integer", "minimum": 1 },
+        "threads": { "type": "integer", "minimum": 1 },
+        "vector": { "type": "string", "examples": ["AVX2", "NEON/ASIMD", "RVV", "none"] },
+        "frequency_mhz": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "cache": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["level", "kind", "size_bytes"],
+        "additionalProperties": false,
+        "properties": {
+          "level": { "type": "integer", "minimum": 1 },
+          "kind": { "type": "string", "examples": ["L1D", "L1I", "L2", "L3"] },
+          "size_bytes": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "required": ["capacity_bytes", "channels"],
+      "additionalProperties": false,
+      "properties": {
+        "capacity_bytes": { "type": "integer", "minimum": 0 },
+        "channels": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "gpu": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["name", "compute_units", "fp32", "fp16", "bf16", "int8"],
+      "properties": {
+        "name": { "type": "string" },
+        "compute_units": { "type": "integer", "minimum": 0 },
+        "fp32": { "type": "boolean" },
+        "fp16": { "type": "boolean" },
+        "bf16": { "type": "boolean" },
+        "int8": { "type": "boolean" }
+      }
+    },
+    "interconnect": {
+      "type": "object",
+      "required": ["kind", "topology"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string" },
+        "topology": { "type": "string", "examples": ["mesh", "ring", "bus", "unknown"] }
+      }
+    }
+  }
+}

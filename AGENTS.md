@@ -38,6 +38,7 @@ HOST
 | `utbh-test` | 4 | Test engine: apakah hardware benar? (PASS/FAIL) |
 | `utbh-benchmark` | 5 | Benchmark engine: latency, throughput, bandwidth, GFLOPS |
 | `utbh-fuzz` | — | Random workload generator + minimizer |
+| `utbh-stress` | — | Stress engine: FAIL kumulatif + degradasi latensi |
 | `utbh-trace` | 7 | Trace hasil FAIL (cycle, instruksi, register, memory, NoC) |
 | `utbh-core` | — | Tipe bersama: `TestDef`, `RunResult`, `HardwareReport`, loader |
 | `utbh-cli` | 7 | Binary `utbh`: discover/test/benchmark/fuzz/run/report/trace |
@@ -55,7 +56,9 @@ cargo test                     # unit test
 ./target/release/utbh benchmark memory
 ./target/release/utbh run universal
 ./target/release/utbh fuzz soc --seed 1 --iterations 64
+./target/release/utbh stress cpu --iterations 100 --window 20
 ./target/release/utbh report
+./target/release/utbh compare <file-a.utbh-result.json> <file-b.utbh-result.json>
 ./target/release/utbh trace <run-id>
 ```
 

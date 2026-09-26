@@ -1,0 +1,10 @@
+{
+  "name": "quick",
+  "description": "Smoke test — suite kecil, iterasi sedikit. Untuk perubahan kecil.",
+  "suites": ["cpu", "memory"],
+  "iterations": 3,
+  "warmup": 1,
+  "fuzz_iterations": 16,
+  "stress_iterations": 20,
+  "stress_window": 10
+}

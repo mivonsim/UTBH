@@ -9,6 +9,7 @@ members = [
     "crates/utbh-test",
     "crates/utbh-benchmark",
     "crates/utbh-fuzz",
+    "crates/utbh-stress",
     "crates/utbh-trace",
     "crates/utbh-cli",
 ]
@@ -27,6 +28,7 @@ utbh-validation = { path = "crates/utbh-validation" }
 utbh-test = { path = "crates/utbh-test" }
 utbh-benchmark = { path = "crates/utbh-benchmark" }
 utbh-fuzz = { path = "crates/utbh-fuzz" }
+utbh-stress = { path = "crates/utbh-stress" }
 utbh-trace = { path = "crates/utbh-trace" }
 
 serde = { version = "1", features = ["derive"] }

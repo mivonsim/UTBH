@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mivonsim.github.io/utbh/schemas/result/result.schema.json",
+  "title": "UTBH Run Result (.utbh-result.json)",
+  "description": "Hasil satu run. Testing (PASS/FAIL) dan benchmark (metrik) tersimpan terpisah — tidak pernah disatukan jadi skor tunggal. Skema ini sinkron dengan tipe di crates/utbh-core/src/{result,outcome}.rs. Bump SCHEMA_VERSION saat format berubah.",
+  "type": "object",
+  "required": ["schema_version", "run_id", "unix_time", "kind", "suite", "hardware", "outcomes"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "unix_time": { "type": "integer", "minimum": 0 },
+    "kind": { "type": "string", "enum": ["test", "benchmark", "run", "fuzz", "stress"] },
+    "suite": { "type": "string" },
+    "hardware": { "$ref": "hardware/hardware.schema.json" },
+    "outcomes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "category", "status", "duration_ns"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "category": { "type": "string" },
+          "status": { "type": "string", "enum": ["PASS", "FAIL"] },
+          "duration_ns": { "type": "integer", "minimum": 0 },
+          "validation": {
+            "type": ["object", "null"],
+            "required": ["mode", "matched", "mismatches", "max_rel_error"],
+            "additionalProperties": false,
+            "properties": {
+              "mode": { "type": "string" },
+              "matched": { "type": "boolean" },
+              "mismatches": { "type": "integer", "minimum": 0 },
+              "first_mismatch": { "type": ["integer", "null"] },
+              "max_rel_error": { "type": "number" }
+            }
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "value", "unit"],
+              "additionalProperties": false,
+              "properties": {
+                "name": { "type": "string", "examples": ["latency", "throughput", "bandwidth", "cycles", "gflops"] },
+                "value": { "type": "number" },
+                "unit": { "type": "string", "examples": ["ns", "elem/s", "GB/s", "cycles", "GFLOPS"] }
+              }
+            }
+          },
+          "error": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "fuzz": {
+      "type": ["object", "null"],
+      "required": ["base_seed", "iterations", "passed", "failed"],
+      "additionalProperties": false,
+      "properties": {
+        "base_seed": { "type": "integer", "minimum": 0 },
+        "iterations": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

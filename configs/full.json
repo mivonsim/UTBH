@@ -1,0 +1,10 @@
+{
+  "name": "full",
+  "description": "Full run — semua suite, iterasi penuh. Untuk rilis / perbandingan hardware.",
+  "suites": ["universal"],
+  "iterations": 10,
+  "warmup": 3,
+  "fuzz_iterations": 64,
+  "stress_iterations": 100,
+  "stress_window": 20
+}

@@ -370,9 +370,16 @@ utbh test <suite>            # cpu | gpu | soc | ...
 utbh benchmark <suite>
 utbh run universal           # test + benchmark semua suite
 utbh fuzz <suite> [--seed N --iterations N]
+utbh stress <suite> [--iterations N --window N]
 utbh report
+utbh compare <a.utbh-result.json> <b.utbh-result.json>
 utbh trace <run-id>
 ```
+
+- `compare` — perbandingan dua run (§11: VM vs FPGA vs ASIC): status PASS/FAIL
+  per test, delta latensi, regresi PASS→FAIL.
+- `stress` — beban berkelanjutan: deteksi FAIL kumulatif (iterasi pertama)
+  + degradasi latensi antar window (throttling/race).
 
 ---
 
@@ -411,9 +418,12 @@ Mivon Hardware VM
 
 ## 16. Roadmap
 
-- [ ] M1: Workspace build, `discover` + `test cpu` jalan di Mivon OS
-- [ ] M2: Full suite cpu/memory/cache + benchmark engine + report
-- [ ] M3: GPU + SoC + interconnect suites
-- [ ] M4: Fuzz engine + minimizer + trace FAIL lengkap
-- [ ] M5: Differential validation vs RTL reference
-- [ ] M6: Perbandingan hasil VM → FPGA → ASIC
+- [x] M1: Workspace build, `discover` + `test cpu` jalan
+- [x] M2: Full suite cpu/memory/cache + benchmark engine + report
+- [x] M3: Suite GPU + SoC + interconnect (payload workload generik; kernel
+      GPU khusus menunggu Hardware API compute Mivon)
+- [x] M4: Fuzz engine + minimizer + trace FAIL (`utbh fuzz`, `utbh trace`)
+- [x] M4b: Stress engine (`utbh stress`) + perbandingan run (`utbh compare`)
+- [ ] M5: Differential validation vs RTL reference (butuh jalur reference
+      dari Mivon OS — saat ini reference = implementasi independen di UTBH)
+- [ ] M6: Perbandingan hasil VM → FPGA → ASIC lewat `utbh compare`
