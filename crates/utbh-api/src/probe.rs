@@ -2,10 +2,15 @@
 //!
 //! Seluruh crate UTBH dilarang akses langsung ke system files; hanya modul
 //! ini (Layer 1) yang boleh. Hasilnya berupa data mentah untuk [`crate::mivon`].
+//!
+//! Path `/proc` + `/sys` = kontrak guest Linux (ISA guest mivon emu: RISC-V
+//! `riscv64gc-unknown-linux-gnu`).
 
 /// Baca file, trim, `None` bila gagal.
 pub fn read(path: &str) -> Option<String> {
-    std::fs::read_to_string(path).ok().map(|s| s.trim().to_string())
+    std::fs::read_to_string(path)
+        .ok()
+        .map(|s| s.trim().to_string())
 }
 
 /// `"64K"` / `"1M"` / `"16G"` → bytes.
@@ -20,7 +25,10 @@ pub fn parse_size_bytes(s: &str) -> u64 {
     } else {
         (s, 1)
     };
-    num.trim().parse::<f64>().map(|n| (n * factor as f64) as u64).unwrap_or(0)
+    num.trim()
+        .parse::<f64>()
+        .map(|n| (n * factor as f64) as u64)
+        .unwrap_or(0)
 }
 
 /// Model CPU dari `/proc/cpuinfo` (multi-ISA).

@@ -33,7 +33,11 @@ pub fn compare(expected: &Data, actual: &Data, mode: &str, tol: f64) -> CompareO
 
     for i in 0..expected.len() {
         let abs = elem_abs_error(expected, actual, i);
-        let rel = if abs.is_finite() { abs / scale } else { f64::INFINITY };
+        let rel = if abs.is_finite() {
+            abs / scale
+        } else {
+            f64::INFINITY
+        };
         max_rel = max_rel.max(rel);
         let ok = if abs.is_finite() {
             abs == 0.0 || (use_tol && rel <= tol)

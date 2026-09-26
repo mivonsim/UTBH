@@ -21,7 +21,10 @@ pub fn validate(def: &TestDef) -> Result<ValidationInfo, String> {
         });
     }
 
-    let tol = def.validation.tolerance.unwrap_or(if mode == "approx" { 1e-5 } else { 0.0 });
+    let tol = def
+        .validation
+        .tolerance
+        .unwrap_or(if mode == "approx" { 1e-5 } else { 0.0 });
     let c = compare(&reference, &exec.data, mode, tol);
 
     Ok(ValidationInfo {

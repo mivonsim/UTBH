@@ -25,7 +25,10 @@ pub fn from_failure(
                 "mode={} mismatches={} first_mismatch={:?} max_rel_error={:.3e}",
                 v.mode, v.mismatches, v.first_mismatch, v.max_rel_error
             ),
-            None => outcome.error.clone().unwrap_or_else(|| "unknown failure".into()),
+            None => outcome
+                .error
+                .clone()
+                .unwrap_or_else(|| "unknown failure".into()),
         },
     });
 
@@ -64,9 +67,14 @@ pub fn from_failure(
 
     // Event kind sesuai spesifikasi trace; OS mengisi nilai cycle-level
     // dari interface hardware ketika tersedia.
-    for kind in
-        ["instruction", "register", "interrupt", "dma", "gpu_command", "noc_transaction"]
-    {
+    for kind in [
+        "instruction",
+        "register",
+        "interrupt",
+        "dma",
+        "gpu_command",
+        "noc_transaction",
+    ] {
         events.push(TraceEvent {
             cycle,
             kind: kind.into(),

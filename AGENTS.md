@@ -4,25 +4,33 @@
 
 UTBH (Universal Test Benchmark Hardware) adalah framework **guest-side** untuk
 testing, validation, fuzzing, stress-testing, dan benchmarking hardware secara
-universal. UTBH berjalan **hanya di dalam Mivon Hardware OS**, di atas Mivon
-Hardware VM, dan berbicara ke hardware lewat **Hardware API** yang disediakan OS.
+universal. UTBH berjalan **hanya di dalam guest OS yang di-boot `mivon emu`**
+(Mivon Hardware Emulator), dan berbicara ke hardware lewat **Hardware API**
+yang disediakan OS.
 
 ## Invariant arsitektur (jangan dilanggar)
 
 ```
 HOST
-  └── Mivon VM
-        └── Mivon Hardware OS
+  └── mivon emu (Mivon Hardware Emulator)
+        └── Guest OS (boot di dalam emulator)
               └── Hardware API
                     └── UTBH
 ```
 
-- UTBH **tidak** dijalankan dari host. Host hanya menjalankan VM.
-- UTBH **tidak** tahu ia berada di VM. Ia melihat hardware, bukan virtual hardware.
+- UTBH **tidak** dijalankan dari host. Host **hanya** menjalankan emulator.
+- **Clone + build juga di guest**: `git clone` dan `cargo build` terjadi di
+  dalam guest OS, bukan di host. Host tidak pernah membangun binary UTBH
+  untuk dijalankan sendiri.
+- UTBH **tidak** tahu ia berada di emulator. Ia melihat hardware, bukan
+  virtual hardware (baca `/proc`, `/sys` milik guest OS = hardware menurut OS).
 - Tidak ada `mivon-vm/`, `verilator/`, `rtl-backend/`, `host-runner/` di repo ini.
   Itu tanggung jawab Mivon, bukan UTBH.
-- Tidak ada "VM backend" di dalam UTBH. Fidelity (fast VM / cycle-accurate VM /
-  RTL) ditentukan environment di luar UTBH. Kode UTBH sama untuk ketiganya.
+- Tidak ada "VM backend" di dalam UTBH. Fidelity (fast emu / cycle-accurate /
+  RTL-linked CPU / FPGA / ASIC) ditentukan environment di luar UTBH.
+  Kode UTBH sama untuk ketiganya.
+- Wajib compile untuk ISA guest RISC-V: dicek CI dengan
+  `cargo check --target riscv64gc-unknown-linux-gnu --workspace`.
 - Semua komunikasi ke hardware melewati `utbh-api` (`HardwareApi` trait).
   Crate lain **dilarang** membaca `/proc`, `/sys`, atau CPUID secara langsung.
 - semua file hanya memiliki 1 tangguh jawab tidak boleh lebih   
@@ -49,7 +57,7 @@ Test didefinisikan **data-driven** di `suites/**/**.utbh` (TOML). Menambah test
 ## Perintah
 
 ```sh
-cargo build --release          # build (di dalam VM)
+cargo build --release          # build (di dalam guest OS)
 cargo test                     # unit test
 ./target/release/utbh discover
 ./target/release/utbh list                 # daftar semua suite + test

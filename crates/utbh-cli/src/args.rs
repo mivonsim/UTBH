@@ -7,7 +7,7 @@ use utbh_core::{DEFAULT_RESULTS_DIR, DEFAULT_SUITES_DIR};
 #[derive(Parser)]
 #[command(
     name = "utbh",
-    about = "Universal Test Benchmark Hardware — jalankan di dalam Mivon Hardware OS",
+    about = "Universal Test Benchmark Hardware — jalankan di dalam guest OS (mivon emu)",
     version
 )]
 pub struct Cli {

@@ -39,3 +39,21 @@ jobs:
 
       - name: Smoke — fuzz
         run: ./target/release/utbh fuzz cpu --seed 1 --iterations 16
+
+  # UTBH hanya berjalan di guest mivon emu (RISC-V). Host tidak pernah
+  # menjalankan utbh — tapi binary wajib compile untuk ISA guest.
+  guest-isa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: riscv64gc-unknown-linux-gnu
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check UTBH compile untuk ISA guest (riscv64 Linux)
+        run: cargo check --target riscv64gc-unknown-linux-gnu --workspace

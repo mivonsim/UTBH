@@ -43,11 +43,17 @@ impl RunResult {
     }
 
     pub fn passed(&self) -> usize {
-        self.outcomes.iter().filter(|o| o.status == Status::Pass).count()
+        self.outcomes
+            .iter()
+            .filter(|o| o.status == Status::Pass)
+            .count()
     }
 
     pub fn failed(&self) -> usize {
-        self.outcomes.iter().filter(|o| o.status == Status::Fail).count()
+        self.outcomes
+            .iter()
+            .filter(|o| o.status == Status::Fail)
+            .count()
     }
 
     pub fn save(&self, dir: &Path) -> std::io::Result<PathBuf> {
@@ -70,7 +76,14 @@ mod tests {
     use super::*;
 
     fn sample() -> RunResult {
-        RunResult::new("run-1", "test", "cpu", HardwareReport::default(), vec![], None)
+        RunResult::new(
+            "run-1",
+            "test",
+            "cpu",
+            HardwareReport::default(),
+            vec![],
+            None,
+        )
     }
 
     #[test]
@@ -87,7 +100,8 @@ mod tests {
     #[test]
     fn counts_pass_fail() {
         let mut run = sample();
-        run.outcomes.push(crate::outcome::TestOutcome::failed("a", "cpu", "x".into()));
+        run.outcomes
+            .push(crate::outcome::TestOutcome::failed("a", "cpu", "x".into()));
         assert_eq!(run.failed(), 1);
         assert_eq!(run.passed(), 0);
     }

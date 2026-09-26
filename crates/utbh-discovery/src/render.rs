@@ -15,7 +15,11 @@ fn kib(n: u64) -> String {
 }
 
 fn y(b: bool) -> &'static str {
-    if b { "supported" } else { "no" }
+    if b {
+        "supported"
+    } else {
+        "no"
+    }
 }
 
 /// Render laporan discovery seperti output `utbh discover`.
@@ -83,7 +87,10 @@ mod tests {
 
     #[test]
     fn format_default_report() {
-        let d = Discovery { report: HardwareReport::default(), mem_bandwidth_gbs: None };
+        let d = Discovery {
+            report: HardwareReport::default(),
+            mem_bandwidth_gbs: None,
+        };
         let text = format_report(&d);
         assert!(text.contains("(none detected)"));
         assert!(text.contains("Interconnect"));

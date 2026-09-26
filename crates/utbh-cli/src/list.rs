@@ -22,11 +22,7 @@ pub fn render(suites_root: &Path) -> Result<String, String> {
         for d in &defs {
             out.push_str(&format!(
                 "  {:<28} {:<22} op={:<14} elements={:<9} mode={}\n",
-                d.test.name,
-                d.test.category,
-                d.operation.op,
-                d.input.elements,
-                d.validation.mode
+                d.test.name, d.test.category, d.operation.op, d.input.elements, d.validation.mode
             ));
         }
     }
@@ -46,7 +42,10 @@ mod tests {
         }
         let text = render(&root).unwrap();
         assert!(text.contains("cpu/"), "suite cpu harus ada:\n{}", text);
-        assert!(text.contains("atomic_add_race"), "test baru harus terdaftar");
+        assert!(
+            text.contains("atomic_add_race"),
+            "test baru harus terdaftar"
+        );
         assert!(text.contains("Tambah test"));
     }
 

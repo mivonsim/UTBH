@@ -1,7 +1,7 @@
-//! Implementasi [`crate::HardwareApi`] di atas Mivon Hardware OS.
+//! Implementasi [`crate::HardwareApi`] di atas guest OS (boot `mivon emu`).
 //!
 //! Satu-satunya tempat yang menyusun hasil [`crate::probe`] jadi laporan
-//! hardware. UTBH melihat hardware apa adanya — tanpa konsep "VM".
+//! hardware. UTBH melihat hardware apa adanya — tanpa konsep "emulator".
 
 use crate::probe;
 use crate::HardwareApi;
@@ -32,7 +32,9 @@ impl HardwareApi for MivonHardwareApi {
     fn hardware_report(&self) -> HardwareReport {
         let arch = std::env::consts::ARCH.to_string();
         let flags = probe::cpu_flags();
-        let cores = std::thread::available_parallelism().map(|n| n.get() as u32).unwrap_or(1);
+        let cores = std::thread::available_parallelism()
+            .map(|n| n.get() as u32)
+            .unwrap_or(1);
 
         let cpu = CpuReport {
             vector: probe::detect_vector(&arch, &flags),
@@ -72,7 +74,13 @@ impl HardwareApi for MivonHardwareApi {
             topology: noc_topo.unwrap_or_else(|| "unknown".into()),
         };
 
-        HardwareReport { cpu, cache, memory, gpu, interconnect }
+        HardwareReport {
+            cpu,
+            cache,
+            memory,
+            gpu,
+            interconnect,
+        }
     }
 
     fn timer_ns(&self) -> u64 {
@@ -100,7 +108,9 @@ impl HardwareApi for MivonHardwareApi {
     }
 
     fn cpu_count(&self) -> usize {
-        std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1)
+        std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1)
     }
 
     fn pin_to_cpu(&self, cpu: usize) -> Result<(), String> {

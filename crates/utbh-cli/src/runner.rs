@@ -3,9 +3,7 @@
 use std::path::Path;
 use std::process::ExitCode;
 use utbh_api::{HardwareApi, MivonHardwareApi};
-use utbh_core::{
-    RunResult, Status, TestDef, TestOutcome, SCHEMA_VERSION,
-};
+use utbh_core::{RunResult, Status, TestDef, TestOutcome, SCHEMA_VERSION};
 use utbh_discovery::{discover, format_report};
 
 use crate::args::{Cli, Command};
@@ -137,8 +135,11 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
             iterations,
         } => {
             let suites = suites_of(&suite);
-            let iterations =
-                crate::profile::Profile::resolve(iterations, prof.and_then(|p| p.fuzz_iterations), 64);
+            let iterations = crate::profile::Profile::resolve(
+                iterations,
+                prof.and_then(|p| p.fuzz_iterations),
+                64,
+            );
             let run_id = utbh_core::new_run_id();
             let cfg = utbh_fuzz::FuzzConfig { seed, iterations };
 
@@ -155,8 +156,10 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
             let mut all_cases = Vec::new();
             for (i, s) in suites.iter().enumerate() {
                 // Seed per suite beda tapi deterministik dari seed dasar.
-                let suite_cfg =
-                    utbh_fuzz::FuzzConfig { seed: seed.wrapping_add(i as u64), ..cfg };
+                let suite_cfg = utbh_fuzz::FuzzConfig {
+                    seed: seed.wrapping_add(i as u64),
+                    ..cfg
+                };
                 let report = utbh_fuzz::fuzz(s, &suite_cfg);
                 passed += report.passed;
                 failed += report.failed;
@@ -214,7 +217,11 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                 ExitCode::SUCCESS
             }
         }
-        Command::Stress { suite, iterations, window } => {
+        Command::Stress {
+            suite,
+            iterations,
+            window,
+        } => {
             let suites = suites_of(&suite);
             let label = suite_label(&suites);
             let iterations = crate::profile::Profile::resolve(
@@ -222,11 +229,8 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                 prof.and_then(|p| p.stress_iterations),
                 100,
             );
-            let window = crate::profile::Profile::resolve(
-                window,
-                prof.and_then(|p| p.stress_window),
-                20,
-            );
+            let window =
+                crate::profile::Profile::resolve(window, prof.and_then(|p| p.stress_window), 20);
             let run_id = utbh_core::new_run_id();
             match load_multi(&cli.suites, &suites) {
                 Ok(defs) => {
@@ -260,7 +264,15 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                             );
                         }
                     }
-                    save_run(&cli.results, &run_id, "stress", &label, &api, &outcomes, None);
+                    save_run(
+                        &cli.results,
+                        &run_id,
+                        "stress",
+                        &label,
+                        &api,
+                        &outcomes,
+                        None,
+                    );
                     finish(&outcomes)
                 }
                 Err(e) => fail(&e),

@@ -36,15 +36,39 @@ pub fn aggregate(def: &TestDef, samples: &[Sample]) -> Vec<Metric> {
     let sec = (avg_ns / 1e9).max(f64::EPSILON);
 
     let mut metrics = vec![
-        Metric { name: "latency".into(), value: avg_ns, unit: "ns".into() },
-        Metric { name: "latency_min".into(), value: min_ns, unit: "ns".into() },
-        Metric { name: "throughput".into(), value: elements / sec, unit: "elem/s".into() },
-        Metric { name: "bandwidth".into(), value: bytes / sec / 1e9, unit: "GB/s".into() },
-        Metric { name: "cycles".into(), value: avg_cycles, unit: "cycles".into() },
+        Metric {
+            name: "latency".into(),
+            value: avg_ns,
+            unit: "ns".into(),
+        },
+        Metric {
+            name: "latency_min".into(),
+            value: min_ns,
+            unit: "ns".into(),
+        },
+        Metric {
+            name: "throughput".into(),
+            value: elements / sec,
+            unit: "elem/s".into(),
+        },
+        Metric {
+            name: "bandwidth".into(),
+            value: bytes / sec / 1e9,
+            unit: "GB/s".into(),
+        },
+        Metric {
+            name: "cycles".into(),
+            value: avg_cycles,
+            unit: "cycles".into(),
+        },
     ];
 
     if flops > 0.0 {
-        metrics.push(Metric { name: "gflops".into(), value: flops / sec / 1e9, unit: "GFLOPS".into() });
+        metrics.push(Metric {
+            name: "gflops".into(),
+            value: flops / sec / 1e9,
+            unit: "GFLOPS".into(),
+        });
     }
 
     let wanted = &def.benchmark.metrics;
@@ -137,7 +161,13 @@ mode = "exact"
         )
         .unwrap();
         d.benchmark.metrics = vec!["latency".into()];
-        let samples = vec![Sample { ns: 100, cycles: 300, elements: 8, bytes: 32, flops: 8 }];
+        let samples = vec![Sample {
+            ns: 100,
+            cycles: 300,
+            elements: 8,
+            bytes: 32,
+            flops: 8,
+        }];
         let m = aggregate(&d, &samples);
         assert_eq!(m.len(), 1);
         assert_eq!(m[0].name, "latency");

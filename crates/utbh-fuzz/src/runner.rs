@@ -60,7 +60,11 @@ pub fn fuzz(suite: &str, cfg: &FuzzConfig) -> FuzzReport {
         });
     }
 
-    FuzzReport { cases, passed, failed }
+    FuzzReport {
+        cases,
+        passed,
+        failed,
+    }
 }
 
 #[cfg(test)]
@@ -69,7 +73,10 @@ mod tests {
 
     #[test]
     fn fuzz_runs_deterministic() {
-        let cfg = FuzzConfig { seed: 42, iterations: 24 };
+        let cfg = FuzzConfig {
+            seed: 42,
+            iterations: 24,
+        };
         let a = fuzz("cpu", &cfg);
         let b = fuzz("cpu", &cfg);
         assert_eq!(a.cases.len(), 24);
@@ -81,7 +88,10 @@ mod tests {
 
     #[test]
     fn every_case_has_seed() {
-        let cfg = FuzzConfig { seed: 7, iterations: 8 };
+        let cfg = FuzzConfig {
+            seed: 7,
+            iterations: 8,
+        };
         let r = fuzz("memory", &cfg);
         for c in &r.cases {
             assert_ne!(c.seed, 0);

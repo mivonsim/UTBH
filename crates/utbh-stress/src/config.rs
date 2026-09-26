@@ -10,7 +10,10 @@ pub struct StressConfig {
 
 impl Default for StressConfig {
     fn default() -> Self {
-        StressConfig { iterations: 100, window: 20 }
+        StressConfig {
+            iterations: 100,
+            window: 20,
+        }
     }
 }
 
@@ -37,7 +40,17 @@ mod tests {
 
     #[test]
     fn rejects_zero() {
-        assert!(StressConfig { iterations: 0, window: 10 }.validate().is_err());
-        assert!(StressConfig { iterations: 10, window: 0 }.validate().is_err());
+        assert!(StressConfig {
+            iterations: 0,
+            window: 10
+        }
+        .validate()
+        .is_err());
+        assert!(StressConfig {
+            iterations: 10,
+            window: 0
+        }
+        .validate()
+        .is_err());
     }
 }

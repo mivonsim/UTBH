@@ -1,6 +1,6 @@
 //! `utbh` — Universal Test Benchmark Hardware CLI.
 //!
-//! Berjalan **di dalam Mivon Hardware OS** (guest), bukan di host.
+//! Berjalan **di dalam guest OS yang di-boot `mivon emu`** (guest), bukan di host.
 //!
 //! ```sh
 //! utbh discover

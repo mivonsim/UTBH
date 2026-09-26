@@ -17,7 +17,10 @@ use utbh_core::{Data, TestDef};
 
 /// Jumlah logical CPU (dari OS — bukan pembacaan /proc langsung).
 fn threads() -> usize {
-    std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1).clamp(1, 64)
+    std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1)
+        .clamp(1, 64)
 }
 
 /// `atomic_add` — semua thread menambah shared counter atomik.
@@ -53,11 +56,15 @@ pub fn parallel_sum(a: Data) -> Result<Data, String> {
     match a {
         Data::U64(v) => {
             let partials = sum_chunks(&v, n, |p| p.iter().fold(0u64, |s, x| s.wrapping_add(*x)));
-            Ok(Data::U64(vec![partials.iter().fold(0u64, |s, x| s.wrapping_add(*x))]))
+            Ok(Data::U64(vec![partials
+                .iter()
+                .fold(0u64, |s, x| s.wrapping_add(*x))]))
         }
         Data::I64(v) => {
             let partials = sum_chunks(&v, n, |p| p.iter().fold(0i64, |s, x| s.wrapping_add(*x)));
-            Ok(Data::I64(vec![partials.iter().fold(0i64, |s, x| s.wrapping_add(*x))]))
+            Ok(Data::I64(vec![partials
+                .iter()
+                .fold(0i64, |s, x| s.wrapping_add(*x))]))
         }
         Data::F32(v) => {
             let partials = sum_chunks(&v, n, |p| p.iter().fold(0f32, |s, x| s + x));
@@ -88,7 +95,10 @@ where
         }
     });
 
-    partials.into_iter().map(|p| p.expect("semua chunk selesai")).collect()
+    partials
+        .into_iter()
+        .map(|p| p.expect("semua chunk selesai"))
+        .collect()
 }
 
 #[cfg(test)]
@@ -153,7 +163,9 @@ mode = "approx"
         let a = utbh_core::inputs(&def).a;
         let Data::F32(v) = &a else { panic!() };
         let serial: f32 = v.iter().sum();
-        let Data::F32(out) = parallel_sum(a).unwrap() else { panic!() };
+        let Data::F32(out) = parallel_sum(a).unwrap() else {
+            panic!()
+        };
         let rel = ((out[0] - serial) / serial.abs().max(1e-12)).abs();
         assert!(rel < 1e-4, "rel={}", rel);
     }

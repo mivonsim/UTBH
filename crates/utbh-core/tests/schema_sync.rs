@@ -18,13 +18,19 @@ fn schema_props(schema: &str, path: &str) -> (Vec<String>, Vec<String>) {
     let names: Vec<String> = props.keys().cloned().collect();
     let required: Vec<String> = node["required"]
         .as_array()
-        .map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+        .map(|a| {
+            a.iter()
+                .filter_map(|x| x.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
     (names, required)
 }
 
 fn json_keys(v: &serde_json::Value) -> Vec<String> {
-    v.as_object().map(|o| o.keys().cloned().collect()).unwrap_or_default()
+    v.as_object()
+        .map(|o| o.keys().cloned().collect())
+        .unwrap_or_default()
 }
 
 #[test]
@@ -38,10 +44,18 @@ fn hardware_schema_matches_types() {
     let keys = json_keys(&json);
 
     for k in &props {
-        assert!(keys.contains(k), "schema punya field '{}' tapi tipe tidak", k);
+        assert!(
+            keys.contains(k),
+            "schema punya field '{}' tapi tipe tidak",
+            k
+        );
     }
     for k in &keys {
-        assert!(props.contains(k), "tipe punya field '{}' tapi schema tidak — update schemas/hardware/", k);
+        assert!(
+            props.contains(k),
+            "tipe punya field '{}' tapi schema tidak — update schemas/hardware/",
+            k
+        );
     }
     for k in &required {
         assert!(keys.contains(k), "required '{}' tidak ada di tipe", k);
@@ -65,10 +79,18 @@ fn result_schema_matches_types() {
     let keys = json_keys(&json);
 
     for k in &props {
-        assert!(keys.contains(k), "schema punya field '{}' tapi tipe tidak", k);
+        assert!(
+            keys.contains(k),
+            "schema punya field '{}' tapi tipe tidak",
+            k
+        );
     }
     for k in &keys {
-        assert!(props.contains(k), "tipe punya field '{}' tapi schema tidak — update schemas/result/", k);
+        assert!(
+            props.contains(k),
+            "tipe punya field '{}' tapi schema tidak — update schemas/result/",
+            k
+        );
     }
     for k in &required {
         assert!(keys.contains(k), "required '{}' tidak ada di tipe", k);
@@ -91,13 +113,28 @@ fn testdef_schema_parses_repo_suite() {
         let json = serde_json::to_value(def).unwrap();
         let keys = json_keys(&json);
         for k in &props {
-            assert!(keys.contains(k), "test {}: schema punya '{}' tapi tipe tidak", def.test.name, k);
+            assert!(
+                keys.contains(k),
+                "test {}: schema punya '{}' tapi tipe tidak",
+                def.test.name,
+                k
+            );
         }
         for k in &keys {
-            assert!(props.contains(k), "test {}: tipe punya '{}' tapi schema tidak", def.test.name, k);
+            assert!(
+                props.contains(k),
+                "test {}: tipe punya '{}' tapi schema tidak",
+                def.test.name,
+                k
+            );
         }
         for k in &required {
-            assert!(keys.contains(k), "test {}: required '{}' hilang", def.test.name, k);
+            assert!(
+                keys.contains(k),
+                "test {}: required '{}' hilang",
+                def.test.name,
+                k
+            );
         }
     }
     // referensi TestDef agar tidak unused-import

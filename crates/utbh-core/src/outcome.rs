@@ -84,7 +84,11 @@ mod tests {
     #[test]
     fn metric_lookup() {
         let mut o = TestOutcome::failed("t", "cpu", "x".into());
-        o.metrics.push(Metric { name: "latency".into(), value: 1.0, unit: "ns".into() });
+        o.metrics.push(Metric {
+            name: "latency".into(),
+            value: 1.0,
+            unit: "ns".into(),
+        });
         assert!(o.metric("latency").is_some());
         assert!(o.metric("bandwidth").is_none());
     }

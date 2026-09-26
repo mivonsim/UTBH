@@ -7,23 +7,28 @@ interconnect, accelerator.
 > **Invariant arsitektur:**
 >
 > ```
-> HOST → Mivon VM → Mivon Hardware OS → Hardware API → UTBH
+> HOST → mivon emu → Guest OS → Hardware API → UTBH
 > ```
 >
-> UTBH berjalan **hanya di dalam Mivon Hardware OS**. Host hanya menjalankan
-> VM. UTBH tidak tahu dirinya berada di VM — ia melihat hardware, bukan
-> virtual hardware. Tidak ada VM backend di dalam UTBH: fast VM,
-> cycle-accurate VM, dan RTL memakai binary yang sama.
+> UTBH berjalan **hanya di dalam guest OS yang di-boot `mivon emu`**.
+> Host hanya menjalankan emulator. **Clone + build juga di guest** — host
+> tidak pernah menjalankan maupun membangun UTBH. UTBH tidak tahu dirinya
+> berada di emulator — ia melihat hardware, bukan virtual hardware.
+> Tidak ada emulator backend di dalam UTBH: fast emu, cycle-accurate, dan
+> RTL-linked CPU memakai binary yang sama.
 
 Detail desain: [`doc/design.md`](doc/design.md) · Aturan kontribusi: [`AGENTS.md`](AGENTS.md)
 
 ## Developer workflow
 
-```sh
-# 1. Dari host: buat VM
-mivon run --hardware aurora-172
+UTBH berjalan **hanya di dalam guest OS yang di-boot mivon emulator** —
+tidak pernah dari host:
 
-# 2. VM boot → Mivon Hardware OS. Di dalam guest:
+```sh
+# 1. Dari host: boot OS di dalam mivon emu
+mivon emu --config project.meu ...   # boot guest OS (EMULATOR.md §8/§12)
+
+# 2. Di dalam guest OS — clone + build DI SINI (bukan di host):
 git clone https://github.com/mivonsim/utbh
 cd utbh
 cargo build --release
@@ -39,6 +44,9 @@ cargo build --release
 ./target/release/utbh compare a.utbh-result.json b.utbh-result.json
 ./target/release/utbh trace <run-id>    # trace untuk kasus FAIL
 ```
+
+Hasil dari guest dibawa keluar (shared folder/copy), lalu dibandingkan
+antar-environment dengan `utbh compare` — mis. run host vs run di emu.
 
 ### Profil
 

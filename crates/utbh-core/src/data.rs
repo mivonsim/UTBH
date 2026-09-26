@@ -64,7 +64,10 @@ pub fn inputs(def: &TestDef) -> Inputs {
     let seed = def.input.seed.unwrap_or_else(|| fnv1a(&def.test.name));
     let n = def.input.elements.max(1);
     let a = gen_data(&def.input.dtype, seed, n);
-    let needs_b = matches!(def.operation.op.as_str(), "add" | "sub" | "mul" | "matmul" | "fma" | "compare");
+    let needs_b = matches!(
+        def.operation.op.as_str(),
+        "add" | "sub" | "mul" | "matmul" | "fma" | "compare"
+    );
     let b = needs_b.then(|| gen_data(&def.input.dtype, seed ^ 0xA5A5_A5A5_A5A5_A5A5, n));
     Inputs { a, b }
 }
@@ -79,7 +82,9 @@ pub fn gen_data(dtype: &str, seed: u64, n: usize) -> Data {
 
 pub fn gen_f32(seed: u64, n: usize) -> Vec<f32> {
     let mut rng = Rng::new(seed);
-    (0..n).map(|_| (rng.next_u64() >> 40) as f32 / (1u64 << 24) as f32).collect()
+    (0..n)
+        .map(|_| (rng.next_u64() >> 40) as f32 / (1u64 << 24) as f32)
+        .collect()
 }
 
 pub fn gen_u64(seed: u64, n: usize) -> Vec<u64> {

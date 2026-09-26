@@ -55,7 +55,10 @@ pub struct BenchmarkSpec {
 
 impl Default for BenchmarkSpec {
     fn default() -> Self {
-        Self { metrics: Vec::new(), iterations: default_iterations() }
+        Self {
+            metrics: Vec::new(),
+            iterations: default_iterations(),
+        }
     }
 }
 

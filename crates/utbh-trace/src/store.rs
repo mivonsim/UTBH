@@ -27,8 +27,7 @@ pub fn load(path: &Path) -> Result<Trace, String> {
 
 /// Semua trace milik satu run-id (prefix match), terurut per nama test.
 pub fn load_all(dir: &Path, run_id: &str) -> Result<Vec<Trace>, String> {
-    let entries =
-        std::fs::read_dir(dir).map_err(|e| format!("{}: {}", dir.display(), e))?;
+    let entries = std::fs::read_dir(dir).map_err(|e| format!("{}: {}", dir.display(), e))?;
     let mut traces = Vec::new();
     let mut last_err: Option<String> = None;
     for entry in entries.flatten() {

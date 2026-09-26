@@ -1,16 +1,17 @@
 //! `utbh-api` — Layer 1: **Mivon Hardware API**.
 //!
-//! Interface resmi antara UTBH dan Mivon Hardware OS. Crate lain di workspace
+//! Interface resmi antara UTBH dan guest OS (yang di-boot `mivon emu`).
+//! Crate lain di workspace
 //! ini **dilarang** membaca `/proc`, `/sys`, atau CPUID langsung; semua lewat
 //! trait [`HardwareApi`].
 //!
 //! **1 file = 1 tanggung jawab:**
 //! - [`probe`] — satu-satunya pembaca `/proc` + `/sys`
-//! - [`mivon`] — implementasi [`HardwareApi`] di atas Mivon Hardware OS
+//! - [`mivon`] — implementasi [`HardwareApi`] di atas guest OS
 //!
-//! UTBH tidak tahu dirinya berada di VM. Ia hanya melihat hardware yang
-//! dilaporkan OS — apapun backend-nya (fast VM, cycle-accurate VM, RTL, FPGA,
-//! ASIC). Kode UTBH sama untuk ketiganya.
+//! UTBH tidak tahu dirinya berada di emulator. Ia hanya melihat hardware yang
+//! dilaporkan OS — apapun backend-nya (fast emu, cycle-accurate, RTL-linked
+//! CPU, FPGA, ASIC). Kode UTBH sama untuk ketiganya.
 
 pub mod mivon;
 pub mod probe;
@@ -21,7 +22,8 @@ use utbh_core::HardwareReport;
 
 /// Jendela resmi ke hardware.
 ///
-/// Implementasi dibaca dari fasilitas yang disediakan Mivon Hardware OS.
+/// Implementasi dibaca dari fasilitas yang disediakan guest OS (boot
+/// `mivon emu`).
 /// UTBH tidak membedakan "virtual" vs "physical" — semua adalah hardware
 /// menurut OS.
 pub trait HardwareApi {

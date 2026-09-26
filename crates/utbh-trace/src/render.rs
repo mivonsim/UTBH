@@ -3,8 +3,10 @@
 use crate::event::Trace;
 
 pub fn render(trace: &Trace) -> String {
-    let mut out =
-        format!("Trace {} — {} ({})\n", trace.run_id, trace.test, trace.category);
+    let mut out = format!(
+        "Trace {} — {} ({})\n",
+        trace.run_id, trace.test, trace.category
+    );
     for e in &trace.events {
         out.push_str(&format!("{:>12}  {:<16} {}\n", e.cycle, e.kind, e.detail));
     }
@@ -22,7 +24,11 @@ mod tests {
             run_id: "r".into(),
             test: "t".into(),
             category: "cpu".into(),
-            events: vec![TraceEvent { cycle: 7, kind: "validation".into(), detail: "x".into() }],
+            events: vec![TraceEvent {
+                cycle: 7,
+                kind: "validation".into(),
+                detail: "x".into(),
+            }],
         };
         let s = render(&t);
         assert!(s.contains("validation"));

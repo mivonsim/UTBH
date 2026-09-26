@@ -30,8 +30,8 @@ pub struct Profile {
 
 impl Profile {
     pub fn load(path: &Path) -> Result<Profile, String> {
-        let text = std::fs::read_to_string(path)
-            .map_err(|e| format!("{}: {}", path.display(), e))?;
+        let text =
+            std::fs::read_to_string(path).map_err(|e| format!("{}: {}", path.display(), e))?;
         serde_json::from_str(&text).map_err(|e| format!("{}: {}", path.display(), e))
     }
 
@@ -47,7 +47,10 @@ impl Profile {
             return Err(format!("profil '{}': fuzz_iterations harus > 0", self.name));
         }
         if let Some(0) = self.stress_iterations {
-            return Err(format!("profil '{}': stress_iterations harus > 0", self.name));
+            return Err(format!(
+                "profil '{}': stress_iterations harus > 0",
+                self.name
+            ));
         }
         if let Some(0) = self.stress_window {
             return Err(format!("profil '{}': stress_window harus > 0", self.name));
@@ -100,20 +103,36 @@ mod tests {
 
     #[test]
     fn rejects_zero_values() {
-        let p = Profile { name: "x".into(), iterations: Some(0), ..Default::default() };
+        let p = Profile {
+            name: "x".into(),
+            iterations: Some(0),
+            ..Default::default()
+        };
         assert!(p.validate().is_err());
     }
 
     #[test]
     fn resolve_suite_prefers_flag_then_all_profile_suites() {
-        let p = Profile { suites: vec!["cpu".into(), "gpu".into()], ..Default::default() };
+        let p = Profile {
+            suites: vec!["cpu".into(), "gpu".into()],
+            ..Default::default()
+        };
         // Flag menang.
-        assert_eq!(Profile::resolve_suite_opt(Some(&p), Some("memory")), vec!["memory"]);
+        assert_eq!(
+            Profile::resolve_suite_opt(Some(&p), Some("memory")),
+            vec!["memory"]
+        );
         // Tanpa flag → semua suite profil.
-        assert_eq!(Profile::resolve_suite_opt(Some(&p), None), vec!["cpu", "gpu"]);
+        assert_eq!(
+            Profile::resolve_suite_opt(Some(&p), None),
+            vec!["cpu", "gpu"]
+        );
         // Tanpa profil → universal.
         assert_eq!(Profile::resolve_suite_opt(None, None), vec!["universal"]);
         // Profil kosong → universal.
-        assert_eq!(Profile::resolve_suite_opt(Some(&Profile::default()), None), vec!["universal"]);
+        assert_eq!(
+            Profile::resolve_suite_opt(Some(&Profile::default()), None),
+            vec!["universal"]
+        );
     }
 }

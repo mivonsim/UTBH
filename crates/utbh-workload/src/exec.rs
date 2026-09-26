@@ -21,7 +21,8 @@ pub fn execute(def: &TestDef) -> Result<WorkloadOutput, String> {
     let inp = inputs(def);
     let a = inp.a;
     let need_b = |b: &Option<Data>| -> Result<Data, String> {
-        b.clone().ok_or_else(|| format!("op '{}' butuh dua operand", def.operation.op))
+        b.clone()
+            .ok_or_else(|| format!("op '{}' butuh dua operand", def.operation.op))
     };
 
     let out = match op {
@@ -35,13 +36,21 @@ pub fn execute(def: &TestDef) -> Result<WorkloadOutput, String> {
         Op::Copy => copy(a),
         Op::MemSeq => mem_pattern(a, false),
         Op::MemRand => mem_pattern(a, true),
-        Op::AtomicAdd => Partial { data: crate::exec_parallel::atomic_add(def, a)? },
-        Op::ParallelSum => Partial { data: crate::exec_parallel::parallel_sum(a)? },
+        Op::AtomicAdd => Partial {
+            data: crate::exec_parallel::atomic_add(def, a)?,
+        },
+        Op::ParallelSum => Partial {
+            data: crate::exec_parallel::parallel_sum(a)?,
+        },
     };
 
     let elements = out.data.len() as u64;
     let bytes = elements * out.data.elem_size() as u64;
-    Ok(WorkloadOutput { data: out.data, elements, bytes })
+    Ok(WorkloadOutput {
+        data: out.data,
+        elements,
+        bytes,
+    })
 }
 
 struct Partial {
@@ -54,26 +63,43 @@ fn bin(a: Data, b: Data, f: impl Fn(f64, f64) -> f64) -> Result<Partial, String>
     }
     Ok(Partial {
         data: match (a, b) {
-            (Data::F32(x), Data::F32(y)) => {
-                Data::F32(x.iter().zip(&y).map(|(p, q)| f(*p as f64, *q as f64) as f32).collect())
-            }
-            (Data::U64(x), Data::U64(y)) => {
-                Data::U64(x.iter().zip(&y).map(|(p, q)| f(*p as f64, *q as f64) as u64).collect())
-            }
-            (Data::I64(x), Data::I64(y)) => {
-                Data::I64(x.iter().zip(&y).map(|(p, q)| f(*p as f64, *q as f64) as i64).collect())
-            }
+            (Data::F32(x), Data::F32(y)) => Data::F32(
+                x.iter()
+                    .zip(&y)
+                    .map(|(p, q)| f(*p as f64, *q as f64) as f32)
+                    .collect(),
+            ),
+            (Data::U64(x), Data::U64(y)) => Data::U64(
+                x.iter()
+                    .zip(&y)
+                    .map(|(p, q)| f(*p as f64, *q as f64) as u64)
+                    .collect(),
+            ),
+            (Data::I64(x), Data::I64(y)) => Data::I64(
+                x.iter()
+                    .zip(&y)
+                    .map(|(p, q)| f(*p as f64, *q as f64) as i64)
+                    .collect(),
+            ),
             _ => return Err("dtype campuran tidak didukung".into()),
         },
     })
 }
 
 fn fma(a: Data, b: Data, c: Option<Data>) -> Result<Partial, String> {
-    let Some(c) = c else { return Err("fma butuh tiga operand".into()) };
+    let Some(c) = c else {
+        return Err("fma butuh tiga operand".into());
+    };
     match (a, b, c) {
-        (Data::F32(x), Data::F32(y), Data::F32(z)) => {
-            Ok(Partial { data: Data::F32(x.iter().zip(&y).zip(&z).map(|((p, q), r)| p * q + r).collect()) })
-        }
+        (Data::F32(x), Data::F32(y), Data::F32(z)) => Ok(Partial {
+            data: Data::F32(
+                x.iter()
+                    .zip(&y)
+                    .zip(&z)
+                    .map(|((p, q), r)| p * q + r)
+                    .collect(),
+            ),
+        }),
         _ => Err("fma hanya mendukung f32".into()),
     }
 }
@@ -124,7 +150,11 @@ fn mem_pattern(a: Data, random: bool) -> Partial {
         Data::U64(v) => v.len(),
         Data::I64(v) => v.len(),
     };
-    let order = if random { fisher_yates(n) } else { (0..n).collect::<Vec<_>>() };
+    let order = if random {
+        fisher_yates(n)
+    } else {
+        (0..n).collect::<Vec<_>>()
+    };
     // Checksum pada urutan order — memaksa akses sesuai pola.
     let _checksum: f64 = match &a {
         Data::F32(v) => order.iter().map(|&i| v[i] as f64).sum(),

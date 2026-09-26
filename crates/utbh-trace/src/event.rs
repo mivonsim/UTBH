@@ -25,7 +25,11 @@ mod tests {
 
     #[test]
     fn trace_event_serializes() {
-        let e = TraceEvent { cycle: 42, kind: "instruction".into(), detail: "add".into() };
+        let e = TraceEvent {
+            cycle: 42,
+            kind: "instruction".into(),
+            detail: "add".into(),
+        };
         let json = serde_json::to_string(&e).unwrap();
         assert!(json.contains("\"cycle\":42"));
     }

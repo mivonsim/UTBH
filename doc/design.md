@@ -9,9 +9,9 @@ Version 0.1 · Status: Living document
 
 UTBH adalah **guest-side universal hardware testing, validation, fuzzing,
 stress-testing, dan benchmarking framework** yang dikompilasi dan dijalankan di
-dalam Mivon Hardware OS, menggunakan Hardware API yang disediakan OS untuk
-menguji CPU, GPU, SoC, memory, interconnect, accelerator, dan hardware custom
-secara hardware-independent.
+dalam guest OS yang di-boot `mivon emu`, menggunakan Hardware API yang
+disediakan OS untuk menguji CPU, GPU, SoC, memory, interconnect, accelerator,
+dan hardware custom secara hardware-independent.
 
 ---
 
@@ -19,8 +19,8 @@ secara hardware-independent.
 
 ```
 HOST
-  └── Mivon VM
-        └── Mivon Hardware OS
+  └── mivon emu (Mivon Hardware Emulator)
+        └── Guest OS (boot di dalam emulator)
               └── Hardware API
                     └── UTBH
 ```
@@ -30,16 +30,19 @@ Bentuk yang DILARANG:
 ```
 HOST
   └── UTBH
-        └── Mivon VM      ← tidak ada
+        └── mivon emu      ← tidak ada
 ```
 
 Konsekuensi:
 
-- Host **hanya** menjalankan VM. Host tidak pernah menjalankan UTBH.
-- UTBH tidak tahu dirinya berada di VM. Ia melihat **hardware**, bukan
-  virtual hardware. Deteksi hypervisor/Verilator adalah urusan OS, bukan UTBH.
-- UTBH tidak memiliki "VM backend". Fidelity ditentukan hardware environment
-  di luar UTBH.
+- Host **hanya** menjalankan emulator. Host tidak pernah menjalankan UTBH.
+- **Clone + build juga di guest**: `git clone` dan `cargo build` terjadi di
+  dalam guest OS, bukan di host.
+- UTBH tidak tahu dirinya berada di emulator. Ia melihat **hardware**, bukan
+  virtual hardware. Deteksi hypervisor adalah urusan OS, bukan UTBH.
+- UTBH tidak memiliki "emulator backend". Fidelity ditentukan hardware
+  environment di luar UTBH.
+- Wajib compile untuk ISA guest RISC-V (`riscv64gc-unknown-linux-gnu`).
 
 ---
 
@@ -48,13 +51,13 @@ Konsekuensi:
 ```
 ┌───────────────────────────────────────────────────────────┐
 │                        HOST OS                            │
-│                   Mivon Hardware VM                       │
+│                 mivon emu (emulator)                      │
 └──────────────────────────┬────────────────────────────────┘
                            ▼
 ┌───────────────────────────────────────────────────────────┐
-│                   MIVON HARDWARE VM                       │
+│                MIVON HARDWARE EMU                         │
 │ ┌───────────────────────────────────────────────────────┐ │
-│ │                MIVON HARDWARE OS                      │ │
+│ │                   GUEST OS                            │ │
 │ │  Kernel / Syscall / Driver / HAL / Scheduler          │ │
 │ │  ┌─────────────────────────────────────────────────┐  │ │
 │ │  │          HARDWARE ABSTRACTION API               │  │ │
@@ -80,7 +83,7 @@ Konsekuensi:
 
 | | Mivon | UTBH |
 |---|---|---|
-| Menyediakan | Hardware VM, Hardware OS, kernel, HAL, drivers, hardware model, RTL integration | — |
+| Menyediakan | Emulator (mivon emu), guest OS, kernel, HAL, drivers, hardware model, RTL integration | — |
 | Mengonsumsi | — | Hardware API |
 | Bertanggung jawab | Menjalankan & menyediakan hardware | Menguji hardware |
 
@@ -91,22 +94,27 @@ VM dari luar.
 
 ## 4. Developer workflow (resmi)
 
-```sh
-# 1. Developer membuat VM (dari host)
-mivon run --hardware aurora-172
+UTBH **tidak pernah dijalankan dari host**. Mivon (`mivon emu`) me-boot
+OS di dalam emulator; di situlah UTBH di-clone, di-build, dan dijalankan.
 
-# 2. VM boot → Mivon Hardware OS
-# 3. Di dalam guest:
+```sh
+# 1. Dari host: boot guest OS di mivon emu
+mivon emu --config project.meu ...
+
+# 2. Di dalam guest OS — clone + build di guest, bukan di host:
 git clone https://github.com/mivonsim/utbh
 cd utbh
 cargo build --release
 
-# 4. Jalankan
+# 3. Jalankan
 ./target/release/utbh discover
 ./target/release/utbh benchmark all
 ```
 
-Urutan: `host → VM → Mivon OS → UTBH`.
+Urutan: `host → mivon emu → guest OS → Hardware API → UTBH`.
+
+Catatan build: UTBH harus compile untuk ISA guest (RISC-V
+`riscv64gc-unknown-linux-gnu` — dicek di CI).
 
 ---
 
@@ -301,7 +309,7 @@ UTBH → Mivon Hardware API → ┌ Fast VM        (architectural model)
 ## 10. Fuzzing
 
 ```
-Random Generator → Hardware Workload → Mivon Hardware API → Hardware VM
+Random Generator → Hardware Workload → Mivon Hardware API → Guest OS (emu)
                                                             │
                                                      Validation
                                                    ┌────┴────┐
@@ -387,19 +395,23 @@ utbh trace <run-id>
 ## 14. Lifecycle final
 
 ```
-Developer
-  │ mivon run
+Developer (host)
+  │ mivon emu — boot guest OS di dalam emulator
   ▼
-Mivon Hardware VM
-  → Boot Hardware OS
+Guest OS (di dalam mivon emu)
   → Network / Git
-  → git clone UTBH
-  → cargo build
+  → git clone UTBH        ← clone DI GUEST, bukan di host
+  → cargo build            ← build DI GUEST, bukan di host
   → UTBH
       ├─ TEST ─┐
       ├─ BENCHMARK ─┼→ VALIDATION → TRACE / RESULT → REPORT / EXPORT
-      └─ FUZZ ─┘
+      ├─ STRESS ─┘
+      └─ FUZZ
+  → hasil dibawa keluar → utbh compare (antar-environment)
 ```
+
+Host **hanya** menjalankan emulator + membandingkan hasil. Tidak ada
+`utbh` yang dieksekusi di host.
 
 ---
 
@@ -414,6 +426,8 @@ Mivon Hardware VM
 | D5 | Reproducible fuzz seed | Setiap FAIL bisa direproduksi |
 | D6 | Tidak ada VM backend di UTBH | Satu binary untuk fast VM / cycle VM / RTL / FPGA / ASIC |
 | D7 | Output terpisah `.utbh-result` / `.utbh-trace` / `.utbh-report` | Mesin-baca vs manusia-baca dipisah |
+| D8 | Clone + build hanya di guest (`mivon emu`), host tidak menjalankan `utbh` | Invariant arsitektur §2 — host hanya menjalankan emulator |
+| D9 | Cross-check compile `riscv64gc-unknown-linux-gnu` di CI | ISA guest mivon emu = RISC-V; UTBH wajib build untuk situ |
 
 ---
 

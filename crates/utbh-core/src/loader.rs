@@ -101,7 +101,11 @@ mod tests {
             let defs = load_all(root).expect("suites repo valid");
             assert!(!defs.is_empty());
             for d in defs {
-                assert!(!d.validation.mode.is_empty(), "{} tanpa validation", d.test.name);
+                assert!(
+                    !d.validation.mode.is_empty(),
+                    "{} tanpa validation",
+                    d.test.name
+                );
             }
         }
     }

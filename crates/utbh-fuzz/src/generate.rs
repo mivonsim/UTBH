@@ -26,7 +26,11 @@ pub fn gen_def(suite: &str, ops: &[&str], rng: &mut Rng, seed: u64) -> TestDef {
     }
     let mode = if r4 % 3 == 0 { "exact" } else { "approx" };
     // matmul/fma butuh f32; atomic_add butuh u64 (fetch_add atomik).
-    let dtype = if matches!(op, "matmul" | "fma") { "f32" } else { dtype };
+    let dtype = if matches!(op, "matmul" | "fma") {
+        "f32"
+    } else {
+        dtype
+    };
     let dtype = if op == "atomic_add" { "u64" } else { dtype };
     // Floating point non-associatif: urutan akumulasi / kontrak FMA berbeda
     // antara jalur workload dan reference → `exact` = false positive, bukan

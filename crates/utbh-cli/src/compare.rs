@@ -53,7 +53,11 @@ impl Comparison {
 }
 
 fn metric_ns(r: &RunResult, test: &str) -> Option<f64> {
-    r.outcomes.iter().find(|o| o.name == test)?.metric("latency").map(|m| m.value)
+    r.outcomes
+        .iter()
+        .find(|o| o.name == test)?
+        .metric("latency")
+        .map(|m| m.value)
 }
 
 fn status_of(r: &RunResult, test: &str) -> Option<Status> {
@@ -96,7 +100,15 @@ pub fn compare(a: &RunResult, b: &RunResult) -> Comparison {
         }
     }
 
-    Comparison { run_a: a.run_id.clone(), run_b: b.run_id.clone(), rows, regressions, recoveries, only_a, only_b }
+    Comparison {
+        run_a: a.run_id.clone(),
+        run_b: b.run_id.clone(),
+        rows,
+        regressions,
+        recoveries,
+        only_a,
+        only_b,
+    }
 }
 
 /// Render tabel perbandingan untuk stdout / report.
@@ -125,8 +137,10 @@ pub fn render(c: &Comparison) -> String {
             r.category,
             fmt(r.status_a),
             fmt(r.status_b),
-            la.map(|v| format!("{:.3} ns", v)).unwrap_or_else(|| "-".into()),
-            lb.map(|v| format!("{:.3} ns", v)).unwrap_or_else(|| "-".into()),
+            la.map(|v| format!("{:.3} ns", v))
+                .unwrap_or_else(|| "-".into()),
+            lb.map(|v| format!("{:.3} ns", v))
+                .unwrap_or_else(|| "-".into()),
             delta
         ));
     }
@@ -136,10 +150,16 @@ pub fn render(c: &Comparison) -> String {
         out.push_str(&format!("Avg latency delta (B vs A): {:+.1}%\n", d));
     }
     if !c.regressions.is_empty() {
-        out.push_str(&format!("REGRESSIONS (PASS→FAIL): {}\n", c.regressions.join(", ")));
+        out.push_str(&format!(
+            "REGRESSIONS (PASS→FAIL): {}\n",
+            c.regressions.join(", ")
+        ));
     }
     if !c.recoveries.is_empty() {
-        out.push_str(&format!("Recoveries (FAIL→PASS): {}\n", c.recoveries.join(", ")));
+        out.push_str(&format!(
+            "Recoveries (FAIL→PASS): {}\n",
+            c.recoveries.join(", ")
+        ));
     }
     if !c.only_a.is_empty() {
         out.push_str(&format!("Only in A: {}\n", c.only_a.join(", ")));
@@ -166,25 +186,44 @@ mod tests {
             duration_ns: 0,
             validation: None,
             metrics: latency
-                .map(|v| vec![Metric { name: "latency".into(), value: v, unit: "ns".into() }])
+                .map(|v| {
+                    vec![Metric {
+                        name: "latency".into(),
+                        value: v,
+                        unit: "ns".into(),
+                    }]
+                })
                 .unwrap_or_default(),
             error: None,
         }
     }
 
     fn run(id: &str, outcomes: Vec<TestOutcome>) -> RunResult {
-        RunResult::new(id, "run", "universal", HardwareReport::default(), outcomes, None)
+        RunResult::new(
+            id,
+            "run",
+            "universal",
+            HardwareReport::default(),
+            outcomes,
+            None,
+        )
     }
 
     #[test]
     fn detects_regression_and_delta() {
         let a = run(
             "vm",
-            vec![outcome("vadd", Status::Pass, Some(1.0)), outcome("mmul", Status::Pass, Some(2.0))],
+            vec![
+                outcome("vadd", Status::Pass, Some(1.0)),
+                outcome("mmul", Status::Pass, Some(2.0)),
+            ],
         );
         let b = run(
             "asic",
-            vec![outcome("vadd", Status::Pass, Some(0.5)), outcome("mmul", Status::Fail, None)],
+            vec![
+                outcome("vadd", Status::Pass, Some(0.5)),
+                outcome("mmul", Status::Fail, None),
+            ],
         );
         let c = compare(&a, &b);
         assert_eq!(c.regressions, vec!["mmul"]);

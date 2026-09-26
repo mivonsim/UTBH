@@ -29,9 +29,7 @@ pub use loader::{list_suites, load_all, load_suite, load_test_file};
 pub use outcome::{FuzzSummary, Metric, Status, TestOutcome, ValidationInfo};
 pub use result::RunResult;
 pub use rng::Rng;
-pub use testdef::{
-    BenchmarkSpec, InputSpec, OperationSpec, TestDef, TestMeta, ValidationSpec,
-};
+pub use testdef::{BenchmarkSpec, InputSpec, OperationSpec, TestDef, TestMeta, ValidationSpec};
 pub use util::{new_run_id, now_unix};
 
 /// Versi schema hasil. **Bump setiap format hasil berubah** (AGENTS.md #3).

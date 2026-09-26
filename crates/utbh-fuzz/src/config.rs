@@ -8,13 +8,25 @@ pub struct FuzzConfig {
 
 impl Default for FuzzConfig {
     fn default() -> Self {
-        FuzzConfig { seed: 0x5EED, iterations: 64 }
+        FuzzConfig {
+            seed: 0x5EED,
+            iterations: 64,
+        }
     }
 }
 
 /// Pool operasi penuh.
 pub const OPS: &[&str] = &[
-    "add", "sub", "mul", "fma", "matmul", "reduce_sum", "compare", "copy", "mem_seq", "mem_rand",
+    "add",
+    "sub",
+    "mul",
+    "fma",
+    "matmul",
+    "reduce_sum",
+    "compare",
+    "copy",
+    "mem_seq",
+    "mem_rand",
 ];
 
 pub const DTYPES: &[&str] = &["f32", "u64", "i64"];
@@ -23,7 +35,16 @@ pub const DTYPES: &[&str] = &["f32", "u64", "i64"];
 pub fn scope(suite: &str) -> Vec<&'static str> {
     match suite {
         "cpu" | "cpu.*" => {
-            vec!["add", "sub", "mul", "fma", "reduce_sum", "compare", "atomic_add", "parallel_sum"]
+            vec![
+                "add",
+                "sub",
+                "mul",
+                "fma",
+                "reduce_sum",
+                "compare",
+                "atomic_add",
+                "parallel_sum",
+            ]
         }
         "memory" | "cache" => vec!["copy", "mem_seq", "mem_rand", "reduce_sum", "parallel_sum"],
         "gpu" => vec!["add", "mul", "fma", "matmul"],

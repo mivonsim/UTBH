@@ -11,7 +11,8 @@ pub fn reference(def: &TestDef) -> Result<Data, String> {
     let a = inp.a;
     let b = inp.b;
     let need_b = |b: &Option<Data>| -> Result<Data, String> {
-        b.clone().ok_or_else(|| format!("op '{}' butuh dua operand", def.operation.op))
+        b.clone()
+            .ok_or_else(|| format!("op '{}' butuh dua operand", def.operation.op))
     };
 
     match def.operation.op.as_str() {
@@ -88,15 +89,24 @@ fn scalar_pair(a: Data, b: Data, f: impl Fn(f64, f64) -> f64) -> Result<Data, St
         return Err(format!("panjang beda: {} vs {}", a.len(), b.len()));
     }
     Ok(match (a, b) {
-        (Data::F32(x), Data::F32(y)) => {
-            Data::F32(x.iter().zip(&y).map(|(p, q)| f(*p as f64, *q as f64) as f32).collect())
-        }
-        (Data::U64(x), Data::U64(y)) => {
-            Data::U64(x.iter().zip(&y).map(|(p, q)| f(*p as f64, *q as f64) as u64).collect())
-        }
-        (Data::I64(x), Data::I64(y)) => {
-            Data::I64(x.iter().zip(&y).map(|(p, q)| f(*p as f64, *q as f64) as i64).collect())
-        }
+        (Data::F32(x), Data::F32(y)) => Data::F32(
+            x.iter()
+                .zip(&y)
+                .map(|(p, q)| f(*p as f64, *q as f64) as f32)
+                .collect(),
+        ),
+        (Data::U64(x), Data::U64(y)) => Data::U64(
+            x.iter()
+                .zip(&y)
+                .map(|(p, q)| f(*p as f64, *q as f64) as u64)
+                .collect(),
+        ),
+        (Data::I64(x), Data::I64(y)) => Data::I64(
+            x.iter()
+                .zip(&y)
+                .map(|(p, q)| f(*p as f64, *q as f64) as i64)
+                .collect(),
+        ),
         _ => return Err("dtype campuran".into()),
     })
 }

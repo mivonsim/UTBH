@@ -41,7 +41,10 @@ impl Op {
 
     /// Butuh dua operand?
     pub fn binary(self) -> bool {
-        matches!(self, Op::Add | Op::Sub | Op::Mul | Op::Fma | Op::MatMul | Op::Compare)
+        matches!(
+            self,
+            Op::Add | Op::Sub | Op::Mul | Op::Fma | Op::MatMul | Op::Compare
+        )
     }
 }
 

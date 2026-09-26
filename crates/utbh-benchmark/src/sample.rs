@@ -14,7 +14,10 @@ pub struct BenchConfig {
 
 impl Default for BenchConfig {
     fn default() -> Self {
-        BenchConfig { warmup: 3, iterations: 10 }
+        BenchConfig {
+            warmup: 3,
+            iterations: 10,
+        }
     }
 }
 
@@ -50,7 +53,9 @@ pub fn run(def: &TestDef, api: &dyn HardwareApi, cfg: &BenchConfig) -> Vec<utbh_
     for _ in 0..iterations {
         let c0 = api.cycles();
         let t0 = api.timer_ns();
-        let Ok(out) = execute(def) else { return Vec::new() };
+        let Ok(out) = execute(def) else {
+            return Vec::new();
+        };
         let t1 = api.timer_ns();
         let c1 = api.cycles();
         samples.push(Sample {
@@ -93,10 +98,22 @@ iterations = 3
     #[test]
     fn produces_all_metric_families_not_one_score() {
         let api = utbh_api::MivonHardwareApi::new();
-        let metrics = run(&def(), &api, &BenchConfig { warmup: 1, iterations: 3 });
+        let metrics = run(
+            &def(),
+            &api,
+            &BenchConfig {
+                warmup: 1,
+                iterations: 3,
+            },
+        );
         let names: Vec<&str> = metrics.iter().map(|m| m.name.as_str()).collect();
         for want in ["latency", "throughput", "bandwidth", "cycles", "gflops"] {
-            assert!(names.contains(&want), "hilang: {} (dapat: {:?})", want, names);
+            assert!(
+                names.contains(&want),
+                "hilang: {} (dapat: {:?})",
+                want,
+                names
+            );
         }
         assert!(names.len() >= 4, "harus multi-metrik, bukan skor tunggal");
     }
@@ -106,7 +123,14 @@ iterations = 3
         let mut d = def();
         d.benchmark.metrics = vec!["latency".into()];
         let api = utbh_api::MivonHardwareApi::new();
-        let metrics = run(&d, &api, &BenchConfig { warmup: 1, iterations: 2 });
+        let metrics = run(
+            &d,
+            &api,
+            &BenchConfig {
+                warmup: 1,
+                iterations: 2,
+            },
+        );
         assert_eq!(metrics.len(), 1);
         assert_eq!(metrics[0].name, "latency");
     }

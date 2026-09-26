@@ -142,24 +142,47 @@ pub fn to_outcome(r: &StressReport) -> TestOutcome {
 
     let mut metrics = Vec::new();
     if let Some(first) = r.windows.first() {
-        metrics.push(Metric { name: "stress_first_window_ns".into(), value: first.avg_ns, unit: "ns".into() });
+        metrics.push(Metric {
+            name: "stress_first_window_ns".into(),
+            value: first.avg_ns,
+            unit: "ns".into(),
+        });
     }
     if let Some(last) = r.windows.last() {
-        metrics.push(Metric { name: "stress_last_window_ns".into(), value: last.avg_ns, unit: "ns".into() });
+        metrics.push(Metric {
+            name: "stress_last_window_ns".into(),
+            value: last.avg_ns,
+            unit: "ns".into(),
+        });
     }
     if let Some(ratio) = r.degradation_ratio {
-        metrics.push(Metric { name: "stress_degradation_ratio".into(), value: ratio, unit: "x".into() });
+        metrics.push(Metric {
+            name: "stress_degradation_ratio".into(),
+            value: ratio,
+            unit: "x".into(),
+        });
     }
     metrics.push(Metric {
         name: "stress_pass_rate".into(),
-        value: if r.iterations > 0 { r.pass as f64 / r.iterations as f64 } else { 0.0 },
+        value: if r.iterations > 0 {
+            r.pass as f64 / r.iterations as f64
+        } else {
+            0.0
+        },
         unit: "ratio".into(),
     });
 
-    let status = if r.stable() { Status::Pass } else { Status::Fail };
+    let status = if r.stable() {
+        Status::Pass
+    } else {
+        Status::Fail
+    };
     let error = r.error.clone().or_else(|| {
         r.degraded().then(|| {
-            format!("degradasi latensi: ratio {:.2}x (>1.2x)", r.degradation_ratio.unwrap_or(0.0))
+            format!(
+                "degradasi latensi: ratio {:.2}x (>1.2x)",
+                r.degradation_ratio.unwrap_or(0.0)
+            )
         })
     });
 
@@ -205,7 +228,10 @@ mode = "exact"
     #[test]
     fn stable_test_passes() {
         let api = utbh_api::MivonHardwareApi::new();
-        let cfg = StressConfig { iterations: 30, window: 10 };
+        let cfg = StressConfig {
+            iterations: 30,
+            window: 10,
+        };
         let r = stress(&def(), &api, &cfg);
         assert!(r.stable(), "err={:?}", r.error);
         assert_eq!(r.pass, 30);
@@ -229,11 +255,26 @@ mode = "exact"
     #[test]
     fn ratio_needs_two_windows() {
         assert_eq!(ratio(&[]), None);
-        let one = vec![Window { index: 0, avg_ns: 100.0, min_ns: 0.0, max_ns: 0.0 }];
+        let one = vec![Window {
+            index: 0,
+            avg_ns: 100.0,
+            min_ns: 0.0,
+            max_ns: 0.0,
+        }];
         assert_eq!(ratio(&one), None);
         let two = vec![
-            Window { index: 0, avg_ns: 100.0, min_ns: 0.0, max_ns: 0.0 },
-            Window { index: 1, avg_ns: 150.0, min_ns: 0.0, max_ns: 0.0 },
+            Window {
+                index: 0,
+                avg_ns: 100.0,
+                min_ns: 0.0,
+                max_ns: 0.0,
+            },
+            Window {
+                index: 1,
+                avg_ns: 150.0,
+                min_ns: 0.0,
+                max_ns: 0.0,
+            },
         ];
         assert_eq!(ratio(&two), Some(1.5));
     }
@@ -248,22 +289,43 @@ mode = "exact"
             fail: 0,
             first_fail_at: None,
             windows: vec![
-                Window { index: 0, avg_ns: 100.0, min_ns: 0.0, max_ns: 0.0 },
-                Window { index: 1, avg_ns: 150.0, min_ns: 0.0, max_ns: 0.0 },
+                Window {
+                    index: 0,
+                    avg_ns: 100.0,
+                    min_ns: 0.0,
+                    max_ns: 0.0,
+                },
+                Window {
+                    index: 1,
+                    avg_ns: 150.0,
+                    min_ns: 0.0,
+                    max_ns: 0.0,
+                },
             ],
             degradation_ratio: Some(1.5),
             error: None,
         };
         assert!(r.degraded());
         let o = to_outcome(&r);
-        assert_eq!(o.status, Status::Pass, "degradasi bukan correctness failure");
+        assert_eq!(
+            o.status,
+            Status::Pass,
+            "degradasi bukan correctness failure"
+        );
         assert!(o.error.as_deref().unwrap_or("").contains("degradasi"));
     }
 
     #[test]
     fn invalid_config_reports_error() {
         let api = utbh_api::MivonHardwareApi::new();
-        let r = stress(&def(), &api, &StressConfig { iterations: 0, window: 10 });
+        let r = stress(
+            &def(),
+            &api,
+            &StressConfig {
+                iterations: 0,
+                window: 10,
+            },
+        );
         assert!(!r.stable());
         assert!(r.error.is_some());
     }
