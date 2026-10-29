@@ -53,10 +53,11 @@ impl Data {
     }
 }
 
-/// Pasangan input untuk operasi. `b` hanya untuk operasi dua-operand.
+/// Input untuk operasi unary, binary, atau FMA tiga-operand.
 pub struct Inputs {
     pub a: Data,
     pub b: Option<Data>,
+    pub c: Option<Data>,
 }
 
 /// Input deterministik: seed = `[input].seed` atau hash nama test.
@@ -66,10 +67,22 @@ pub fn inputs(def: &TestDef) -> Inputs {
     let a = gen_data(&def.input.dtype, seed, n);
     let needs_b = matches!(
         def.operation.op.as_str(),
-        "add" | "sub" | "mul" | "matmul" | "fma" | "compare"
+        "add"
+            | "vector_add"
+            | "sub"
+            | "vector_sub"
+            | "mul"
+            | "vector_mul"
+            | "matmul"
+            | "matrix_mul"
+            | "fma"
+            | "vector_fma"
+            | "compare"
     );
     let b = needs_b.then(|| gen_data(&def.input.dtype, seed ^ 0xA5A5_A5A5_A5A5_A5A5, n));
-    Inputs { a, b }
+    let c = (def.operation.op == "fma" || def.operation.op == "vector_fma")
+        .then(|| gen_data(&def.input.dtype, seed ^ 0x5A5A_5A5A_5A5A_5A5A, n));
+    Inputs { a, b, c }
 }
 
 pub fn gen_data(dtype: &str, seed: u64, n: usize) -> Data {
@@ -127,14 +140,47 @@ mode = "exact"
         let b = inputs(&def);
         assert_eq!(a.a, b.a);
         assert_eq!(a.b, b.b);
+        assert_eq!(a.c, b.c);
         assert_eq!(a.a.len(), 1024);
         assert!(a.b.is_some());
+        assert!(a.c.is_none());
     }
 
     #[test]
     fn binary_ops_need_two_inputs() {
-        let def = sample();
-        assert!(inputs(&def).b.is_some());
+        for op in [
+            "add",
+            "vector_add",
+            "sub",
+            "vector_sub",
+            "mul",
+            "vector_mul",
+            "matmul",
+            "matrix_mul",
+            "fma",
+            "vector_fma",
+            "compare",
+        ] {
+            let mut def = sample();
+            def.operation.op = op.into();
+            assert!(inputs(&def).b.is_some(), "{op} must generate operand B");
+        }
+    }
+
+    #[test]
+    fn fma_inputs_include_a_deterministic_third_operand() {
+        for op in ["fma", "vector_fma"] {
+            let mut def = sample();
+            def.operation.op = op.into();
+
+            let first = inputs(&def);
+            let second = inputs(&def);
+            assert_eq!(first.a, second.a);
+            assert_eq!(first.b, second.b);
+            assert_eq!(first.c, second.c);
+            assert!(first.c.is_some());
+            assert_ne!(first.b, first.c);
+        }
     }
 
     #[test]

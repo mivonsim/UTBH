@@ -29,7 +29,7 @@ pub fn execute(def: &TestDef) -> Result<WorkloadOutput, String> {
         Op::Add => bin(a, need_b(&inp.b)?, ScalarOp::Add)?,
         Op::Sub => bin(a, need_b(&inp.b)?, ScalarOp::Sub)?,
         Op::Mul => bin(a, need_b(&inp.b)?, ScalarOp::Mul)?,
-        Op::Fma => fma(a, need_b(&inp.b)?, inp.b.clone())?,
+        Op::Fma => fma(a, need_b(&inp.b)?, inp.c)?,
         Op::MatMul => matmul(a, need_b(&inp.b)?)?,
         Op::Compare => bin(a, need_b(&inp.b)?, ScalarOp::Compare)?,
         Op::ReduceSum => reduce_sum(a),
@@ -254,6 +254,27 @@ mode = "exact"
             .data,
             Data::U64(vec![0])
         );
+    }
+
+    #[test]
+    fn fma_uses_a_distinct_third_operand() {
+        let d = def("fma", "f32", 128);
+        let inputs = utbh_core::inputs(&d);
+        let (Data::F32(a), Some(Data::F32(b)), Some(Data::F32(c))) =
+            (&inputs.a, &inputs.b, &inputs.c)
+        else {
+            panic!("fma inputs must be three f32 vectors");
+        };
+        assert_ne!(b, c);
+
+        let expected = Data::F32(
+            a.iter()
+                .zip(b)
+                .zip(c)
+                .map(|((x, y), z)| x * y + z)
+                .collect(),
+        );
+        assert_eq!(execute(&d).unwrap().data, expected);
     }
 
     #[test]

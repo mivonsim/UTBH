@@ -10,9 +10,14 @@ pub fn reference(def: &TestDef) -> Result<Data, String> {
     let inp = inputs(def);
     let a = inp.a;
     let b = inp.b;
+    let c = inp.c;
     let need_b = |b: &Option<Data>| -> Result<Data, String> {
         b.clone()
             .ok_or_else(|| format!("op '{}' butuh dua operand", def.operation.op))
+    };
+    let need_c = |c: &Option<Data>| -> Result<Data, String> {
+        c.clone()
+            .ok_or_else(|| format!("op '{}' butuh tiga operand", def.operation.op))
     };
 
     match def.operation.op.as_str() {
@@ -20,15 +25,12 @@ pub fn reference(def: &TestDef) -> Result<Data, String> {
         "sub" | "vector_sub" => scalar_pair(a, need_b(&b)?, ScalarOp::Sub),
         "mul" | "vector_mul" => scalar_pair(a, need_b(&b)?, ScalarOp::Mul),
         "compare" => scalar_pair(a, need_b(&b)?, ScalarOp::Compare),
-        "fma" | "vector_fma" => {
-            let c = need_b(&b)?;
-            match (a, need_b(&b)?, c) {
-                (Data::F32(x), Data::F32(y), Data::F32(z)) => Ok(Data::F32(
-                    (0..x.len()).map(|i| x[i].mul_add(y[i], z[i])).collect(),
-                )),
-                _ => Err("fma hanya f32".into()),
-            }
-        }
+        "fma" | "vector_fma" => match (a, need_b(&b)?, need_c(&c)?) {
+            (Data::F32(x), Data::F32(y), Data::F32(z)) => Ok(Data::F32(
+                (0..x.len()).map(|i| x[i].mul_add(y[i], z[i])).collect(),
+            )),
+            _ => Err("fma hanya f32".into()),
+        },
         "matmul" | "matrix_mul" => matmul_i_k_j(a, need_b(&b)?),
         "reduce_sum" | "reduce" => Ok(match a {
             Data::F32(v) => Data::F32(vec![pairwise_sum(&v)]),
@@ -184,6 +186,21 @@ mode = "exact"
             .unwrap(),
             Data::U64(vec![0])
         );
+    }
+
+    #[test]
+    fn fma_reference_uses_a_distinct_third_operand() {
+        let d = def("fma", 128, "f32");
+        let inputs = inputs(&d);
+        let (Data::F32(a), Some(Data::F32(b)), Some(Data::F32(c))) =
+            (&inputs.a, &inputs.b, &inputs.c)
+        else {
+            panic!("fma inputs must be three f32 vectors");
+        };
+        assert_ne!(b, c);
+
+        let expected = Data::F32((0..a.len()).map(|i| a[i].mul_add(b[i], c[i])).collect());
+        assert_eq!(reference(&d).unwrap(), expected);
     }
 
     #[test]
