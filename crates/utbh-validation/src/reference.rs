@@ -16,10 +16,10 @@ pub fn reference(def: &TestDef) -> Result<Data, String> {
     };
 
     match def.operation.op.as_str() {
-        "add" | "vector_add" => scalar_pair(a, need_b(&b)?, |x, y| x + y),
-        "sub" | "vector_sub" => scalar_pair(a, need_b(&b)?, |x, y| x - y),
-        "mul" | "vector_mul" => scalar_pair(a, need_b(&b)?, |x, y| x * y),
-        "compare" => scalar_pair(a, need_b(&b)?, |x, y| if x == y { 1.0 } else { 0.0 }),
+        "add" | "vector_add" => scalar_pair(a, need_b(&b)?, ScalarOp::Add),
+        "sub" | "vector_sub" => scalar_pair(a, need_b(&b)?, ScalarOp::Sub),
+        "mul" | "vector_mul" => scalar_pair(a, need_b(&b)?, ScalarOp::Mul),
+        "compare" => scalar_pair(a, need_b(&b)?, ScalarOp::Compare),
         "fma" | "vector_fma" => {
             let c = need_b(&b)?;
             match (a, need_b(&b)?, c) {
@@ -84,7 +84,15 @@ fn pairwise_sum(v: &[f32]) -> f32 {
     pairwise_sum(&v[..mid]) + pairwise_sum(&v[mid..])
 }
 
-fn scalar_pair(a: Data, b: Data, f: impl Fn(f64, f64) -> f64) -> Result<Data, String> {
+#[derive(Clone, Copy)]
+enum ScalarOp {
+    Add,
+    Sub,
+    Mul,
+    Compare,
+}
+
+fn scalar_pair(a: Data, b: Data, op: ScalarOp) -> Result<Data, String> {
     if a.len() != b.len() {
         return Err(format!("panjang beda: {} vs {}", a.len(), b.len()));
     }
@@ -92,19 +100,34 @@ fn scalar_pair(a: Data, b: Data, f: impl Fn(f64, f64) -> f64) -> Result<Data, St
         (Data::F32(x), Data::F32(y)) => Data::F32(
             x.iter()
                 .zip(&y)
-                .map(|(p, q)| f(*p as f64, *q as f64) as f32)
+                .map(|(p, q)| match op {
+                    ScalarOp::Add => p + q,
+                    ScalarOp::Sub => p - q,
+                    ScalarOp::Mul => p * q,
+                    ScalarOp::Compare => (*p == *q) as u8 as f32,
+                })
                 .collect(),
         ),
         (Data::U64(x), Data::U64(y)) => Data::U64(
             x.iter()
                 .zip(&y)
-                .map(|(p, q)| f(*p as f64, *q as f64) as u64)
+                .map(|(p, q)| match op {
+                    ScalarOp::Add => p.wrapping_add(*q),
+                    ScalarOp::Sub => p.wrapping_sub(*q),
+                    ScalarOp::Mul => p.wrapping_mul(*q),
+                    ScalarOp::Compare => (*p == *q) as u64,
+                })
                 .collect(),
         ),
         (Data::I64(x), Data::I64(y)) => Data::I64(
             x.iter()
                 .zip(&y)
-                .map(|(p, q)| f(*p as f64, *q as f64) as i64)
+                .map(|(p, q)| match op {
+                    ScalarOp::Add => p.wrapping_add(*q),
+                    ScalarOp::Sub => p.wrapping_sub(*q),
+                    ScalarOp::Mul => p.wrapping_mul(*q),
+                    ScalarOp::Compare => (*p == *q) as i64,
+                })
                 .collect(),
         ),
         _ => return Err("dtype campuran".into()),
@@ -140,6 +163,27 @@ mode = "exact"
         let r = reference(&d).unwrap();
         let e = utbh_workload::execute(&d).unwrap();
         assert_eq!(r, e.data);
+    }
+
+    #[test]
+    fn integer_add_wraps_without_float_conversion() {
+        assert_eq!(
+            scalar_pair(Data::U64(vec![u64::MAX]), Data::U64(vec![1]), ScalarOp::Add).unwrap(),
+            Data::U64(vec![0])
+        );
+    }
+
+    #[test]
+    fn integer_compare_distinguishes_values_above_f64_precision() {
+        assert_eq!(
+            scalar_pair(
+                Data::U64(vec![1 << 53]),
+                Data::U64(vec![(1 << 53) + 1]),
+                ScalarOp::Compare
+            )
+            .unwrap(),
+            Data::U64(vec![0])
+        );
     }
 
     #[test]

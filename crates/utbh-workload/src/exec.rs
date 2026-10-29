@@ -26,12 +26,12 @@ pub fn execute(def: &TestDef) -> Result<WorkloadOutput, String> {
     };
 
     let out = match op {
-        Op::Add => bin(a, need_b(&inp.b)?, |x, y| x + y)?,
-        Op::Sub => bin(a, need_b(&inp.b)?, |x, y| x - y)?,
-        Op::Mul => bin(a, need_b(&inp.b)?, |x, y| x * y)?,
+        Op::Add => bin(a, need_b(&inp.b)?, ScalarOp::Add)?,
+        Op::Sub => bin(a, need_b(&inp.b)?, ScalarOp::Sub)?,
+        Op::Mul => bin(a, need_b(&inp.b)?, ScalarOp::Mul)?,
         Op::Fma => fma(a, need_b(&inp.b)?, inp.b.clone())?,
         Op::MatMul => matmul(a, need_b(&inp.b)?)?,
-        Op::Compare => compare(a, need_b(&inp.b)?)?,
+        Op::Compare => bin(a, need_b(&inp.b)?, ScalarOp::Compare)?,
         Op::ReduceSum => reduce_sum(a),
         Op::Copy => copy(a),
         Op::MemSeq => mem_pattern(a, false),
@@ -57,7 +57,15 @@ struct Partial {
     data: Data,
 }
 
-fn bin(a: Data, b: Data, f: impl Fn(f64, f64) -> f64) -> Result<Partial, String> {
+#[derive(Clone, Copy)]
+enum ScalarOp {
+    Add,
+    Sub,
+    Mul,
+    Compare,
+}
+
+fn bin(a: Data, b: Data, op: ScalarOp) -> Result<Partial, String> {
     if a.len() != b.len() {
         return Err(format!("panjang tidak cocok: {} vs {}", a.len(), b.len()));
     }
@@ -66,19 +74,34 @@ fn bin(a: Data, b: Data, f: impl Fn(f64, f64) -> f64) -> Result<Partial, String>
             (Data::F32(x), Data::F32(y)) => Data::F32(
                 x.iter()
                     .zip(&y)
-                    .map(|(p, q)| f(*p as f64, *q as f64) as f32)
+                    .map(|(p, q)| match op {
+                        ScalarOp::Add => p + q,
+                        ScalarOp::Sub => p - q,
+                        ScalarOp::Mul => p * q,
+                        ScalarOp::Compare => (*p == *q) as u8 as f32,
+                    })
                     .collect(),
             ),
             (Data::U64(x), Data::U64(y)) => Data::U64(
                 x.iter()
                     .zip(&y)
-                    .map(|(p, q)| f(*p as f64, *q as f64) as u64)
+                    .map(|(p, q)| match op {
+                        ScalarOp::Add => p.wrapping_add(*q),
+                        ScalarOp::Sub => p.wrapping_sub(*q),
+                        ScalarOp::Mul => p.wrapping_mul(*q),
+                        ScalarOp::Compare => (*p == *q) as u64,
+                    })
                     .collect(),
             ),
             (Data::I64(x), Data::I64(y)) => Data::I64(
                 x.iter()
                     .zip(&y)
-                    .map(|(p, q)| f(*p as f64, *q as f64) as i64)
+                    .map(|(p, q)| match op {
+                        ScalarOp::Add => p.wrapping_add(*q),
+                        ScalarOp::Sub => p.wrapping_sub(*q),
+                        ScalarOp::Mul => p.wrapping_mul(*q),
+                        ScalarOp::Compare => (*p == *q) as i64,
+                    })
                     .collect(),
             ),
             _ => return Err("dtype campuran tidak didukung".into()),
@@ -123,10 +146,6 @@ fn matmul(a: Data, b: Data) -> Result<Partial, String> {
         }
     }
     Ok(Partial { data: Data::F32(c) })
-}
-
-fn compare(a: Data, b: Data) -> Result<Partial, String> {
-    bin(a, b, |x, y| if x == y { 1.0 } else { 0.0 })
 }
 
 fn reduce_sum(a: Data) -> Partial {
@@ -211,6 +230,30 @@ mode = "exact"
         assert_eq!(o.data.len(), 100);
         assert_eq!(o.elements, 100);
         assert_eq!(o.bytes, 100 * 4);
+    }
+
+    #[test]
+    fn integer_add_wraps_without_float_conversion() {
+        assert_eq!(
+            bin(Data::U64(vec![u64::MAX]), Data::U64(vec![1]), ScalarOp::Add)
+                .unwrap()
+                .data,
+            Data::U64(vec![0])
+        );
+    }
+
+    #[test]
+    fn integer_compare_distinguishes_values_above_f64_precision() {
+        assert_eq!(
+            bin(
+                Data::U64(vec![1 << 53]),
+                Data::U64(vec![(1 << 53) + 1]),
+                ScalarOp::Compare
+            )
+            .unwrap()
+            .data,
+            Data::U64(vec![0])
+        );
     }
 
     #[test]
