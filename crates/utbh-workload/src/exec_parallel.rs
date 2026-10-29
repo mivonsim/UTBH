@@ -75,8 +75,7 @@ pub fn parallel_sum(a: Data) -> Result<Data, String> {
 
 /// Bagi `v` jadi `n` chunk paralel, hitung partial per chunk (deterministik:
 /// chunk berurutan, ukuran tetap).
-fn sum_chunks<T: Clone + Sync, R: Send>(v: &[T], n: usize, f: impl Fn(&[T]) -> R + Sync) -> Vec<R>
-{
+fn sum_chunks<T: Clone + Sync, R: Send>(v: &[T], n: usize, f: impl Fn(&[T]) -> R + Sync) -> Vec<R> {
     let chunk = v.len().div_ceil(n.max(1)).max(1);
     let parts: Vec<&[T]> = v.chunks(chunk).collect();
     let mut partials: Vec<Option<R>> = (0..parts.len()).map(|_| None).collect();

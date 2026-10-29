@@ -17,10 +17,7 @@ pub fn finish(outcomes: &[TestOutcome]) -> ExitCode {
 }
 
 pub fn print_test_results(outcomes: &[TestOutcome]) {
-    println!(
-        "\n{:<28} {:<14} {:<8} DETAIL",
-        "TEST", "CATEGORY", "RESULT"
-    );
+    println!("\n{:<28} {:<14} {:<8} DETAIL", "TEST", "CATEGORY", "RESULT");
     println!("{}", "-".repeat(78));
     for o in outcomes {
         let result = match o.status {
