@@ -67,8 +67,7 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
         } => {
             let suites = suites_of(&suite);
             let label = suite_label(&suites);
-            let iterations =
-                crate::profile::Profile::resolve(iterations, prof.and_then(|p| p.iterations), 10);
+            let iterations = iterations.or_else(|| prof.and_then(|p| p.iterations));
             let warmup = crate::profile::Profile::resolve(warmup, prof.and_then(|p| p.warmup), 3);
             let run_id = utbh_core::new_run_id();
             match load_multi(&cli.suites, &suites) {
@@ -106,8 +105,7 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
         } => {
             let suites = suites_of(&suite);
             let label = suite_label(&suites);
-            let iterations =
-                crate::profile::Profile::resolve(iterations, prof.and_then(|p| p.iterations), 10);
+            let iterations = iterations.or_else(|| prof.and_then(|p| p.iterations));
             let warmup = crate::profile::Profile::resolve(warmup, prof.and_then(|p| p.warmup), 3);
             let run_id = utbh_core::new_run_id();
             match load_multi(&cli.suites, &suites) {

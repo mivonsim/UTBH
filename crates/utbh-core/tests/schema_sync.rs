@@ -38,8 +38,10 @@ fn hardware_schema_matches_types() {
     let schema = include_str!("../../../schemas/hardware/hardware.schema.json");
     let (props, required) = schema_props(schema, "");
     // gpu = Some supaya field optional ikut ter-serialize (skip_serializing_if).
-    let mut hw = HardwareReport::default();
-    hw.gpu = Some(utbh_core::GpuReport::default());
+    let hw = utbh_core::HardwareReport {
+        gpu: Some(utbh_core::GpuReport::default()),
+        ..Default::default()
+    };
     let json = serde_json::to_value(&hw).unwrap();
     let keys = json_keys(&json);
 

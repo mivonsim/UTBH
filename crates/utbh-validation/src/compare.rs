@@ -62,20 +62,10 @@ pub fn compare(expected: &Data, actual: &Data, mode: &str, tol: f64) -> CompareO
 fn elem_abs_error(e: &Data, a: &Data, i: usize) -> f64 {
     match (e, a) {
         (Data::F32(x), Data::F32(y)) => ((y[i] - x[i]) as f64).abs(),
-        (Data::U64(x), Data::U64(y)) => {
-            if x[i] == y[i] {
-                0.0
-            } else {
-                f64::INFINITY // beda = beda, tanpa derajat
-            }
-        }
-        (Data::I64(x), Data::I64(y)) => {
-            if x[i] == y[i] {
-                0.0
-            } else {
-                f64::INFINITY
-            }
-        }
+        (Data::U64(x), Data::U64(y)) if x[i] == y[i] => 0.0,
+        (Data::U64(..), Data::U64(..)) => f64::INFINITY,
+        (Data::I64(x), Data::I64(y)) if x[i] == y[i] => 0.0,
+        (Data::I64(..), Data::I64(..)) => f64::INFINITY,
         _ => f64::INFINITY,
     }
 }

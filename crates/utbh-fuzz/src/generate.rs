@@ -24,7 +24,7 @@ pub fn gen_def(suite: &str, ops: &[&str], rng: &mut Rng, seed: u64) -> TestDef {
     if op == "matmul" {
         elements = elements.min(4096);
     }
-    let mode = if r4 % 3 == 0 { "exact" } else { "approx" };
+    let mode = if r4.is_multiple_of(3) { "exact" } else { "approx" };
     // matmul/fma butuh f32; atomic_add butuh u64 (fetch_add atomik).
     let dtype = if matches!(op, "matmul" | "fma") {
         "f32"

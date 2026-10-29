@@ -75,7 +75,7 @@ pub fn aggregate(def: &TestDef, samples: &[Sample]) -> Vec<Metric> {
     if wanted.is_empty() {
         return metrics;
     }
-    metrics.retain(|m| wanted.iter().any(|w| m.name == *w));
+    metrics.retain(|m| wanted.contains(&m.name));
     metrics
 }
 

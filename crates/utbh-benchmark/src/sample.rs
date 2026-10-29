@@ -8,15 +8,15 @@ use utbh_workload::execute;
 pub struct BenchConfig {
     /// Iterasi warmup (dibuang dari hasil).
     pub warmup: u32,
-    /// Iterasi pengukuran.
-    pub iterations: u32,
+    /// Override iterasi dari CLI/profil; `None` memakai nilai test definition.
+    pub iterations: Option<u32>,
 }
 
 impl Default for BenchConfig {
     fn default() -> Self {
         BenchConfig {
             warmup: 3,
-            iterations: 10,
+            iterations: None,
         }
     }
 }
@@ -36,11 +36,7 @@ pub struct Sample {
 /// Mengembalikan daftar metrik terpisah — bukan skor agregat.
 /// Kosong kalau workload gagal (Layer 4 yang lapor FAIL).
 pub fn run(def: &TestDef, api: &dyn HardwareApi, cfg: &BenchConfig) -> Vec<utbh_core::Metric> {
-    let iterations = if def.benchmark.iterations > 0 {
-        def.benchmark.iterations.max(1)
-    } else {
-        cfg.iterations.max(1)
-    };
+    let iterations = cfg.iterations.unwrap_or(def.benchmark.iterations).max(1);
 
     // Warmup: buang hasil, hanya agar cache/pipeline stabil.
     for _ in 0..cfg.warmup {
@@ -73,6 +69,47 @@ pub fn run(def: &TestDef, api: &dyn HardwareApi, cfg: &BenchConfig) -> Vec<utbh_
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cell::Cell;
+    use utbh_api::HardwareApi;
+    use utbh_core::HardwareReport;
+
+    #[derive(Default)]
+    struct CountingApi {
+        timer_reads: Cell<usize>,
+        cycle_reads: Cell<usize>,
+    }
+
+    impl HardwareApi for CountingApi {
+        fn hardware_report(&self) -> HardwareReport {
+            HardwareReport::default()
+        }
+
+        fn timer_ns(&self) -> u64 {
+            self.timer_reads.set(self.timer_reads.get() + 1);
+            self.timer_reads.get() as u64
+        }
+
+        fn cycles(&self) -> u64 {
+            self.cycle_reads.set(self.cycle_reads.get() + 1);
+            self.cycle_reads.get() as u64
+        }
+
+        fn cpu_frequency_hz(&self) -> u64 {
+            1_000_000_000
+        }
+
+        fn cpu_count(&self) -> usize {
+            1
+        }
+
+        fn pin_to_cpu(&self, _: usize) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn dma_scratch(&self, size: usize) -> Result<Vec<u8>, String> {
+            Ok(vec![0; size])
+        }
+    }
 
     fn def() -> TestDef {
         toml::from_str(
@@ -103,7 +140,7 @@ iterations = 3
             &api,
             &BenchConfig {
                 warmup: 1,
-                iterations: 3,
+                iterations: Some(3),
             },
         );
         let names: Vec<&str> = metrics.iter().map(|m| m.name.as_str()).collect();
@@ -128,10 +165,40 @@ iterations = 3
             &api,
             &BenchConfig {
                 warmup: 1,
-                iterations: 2,
+                iterations: Some(2),
             },
         );
         assert_eq!(metrics.len(), 1);
         assert_eq!(metrics[0].name, "latency");
+    }
+
+    #[test]
+    fn config_override_takes_precedence_over_test_iterations() {
+        let api = CountingApi::default();
+        run(
+            &def(),
+            &api,
+            &BenchConfig {
+                warmup: 0,
+                iterations: Some(2),
+            },
+        );
+        assert_eq!(api.timer_reads.get(), 4);
+        assert_eq!(api.cycle_reads.get(), 4);
+    }
+
+    #[test]
+    fn test_iterations_are_used_without_config_override() {
+        let api = CountingApi::default();
+        run(
+            &def(),
+            &api,
+            &BenchConfig {
+                warmup: 0,
+                iterations: None,
+            },
+        );
+        assert_eq!(api.timer_reads.get(), 6);
+        assert_eq!(api.cycle_reads.get(), 6);
     }
 }
