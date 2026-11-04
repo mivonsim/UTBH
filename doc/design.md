@@ -1,7 +1,7 @@
 # UTBH — Design Document
 
 **Universal Test Benchmark Hardware**
-Version 0.1 · Status: Living document
+Version 1.0 · Status: Stable
 
 ---
 
@@ -434,6 +434,9 @@ Host **hanya** menjalankan emulator + membandingkan hasil. Tidak ada
 ---
 
 ## 16. Roadmap
+
+Status 1.0: M1–M4c selesai dan stabil. M5–M6 bergantung pada jalur reference
+Mivon OS dan target FPGA/ASIC, bukan pada kode UTBH sendiri.
 
 - [x] M1: Workspace build, `discover` + `test cpu` jalan
 - [x] M2: Full suite cpu/memory/cache + benchmark engine + report

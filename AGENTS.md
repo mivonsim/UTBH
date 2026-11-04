@@ -62,6 +62,8 @@ Test didefinisikan **data-driven** di `suites/**/**.utbh` (TOML). Menambah test
 ```sh
 cargo build --release          # build (di dalam guest OS)
 cargo test                     # unit test
+cargo fmt --all -- --check     # gate format
+cargo clippy --workspace --all-targets -- -D warnings   # gate lint
 ./target/release/utbh discover
 ./target/release/utbh list                 # daftar semua suite + test
 ./target/release/utbh test cpu

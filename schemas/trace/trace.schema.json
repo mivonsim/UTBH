@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mivonsim.github.io/utbh/schemas/trace/trace.schema.json",
+  "title": "UTBH Trace (.utbh-trace.json)",
+  "description": "Trace satu test yang FAIL. Sinkron dengan tipe di crates/utbh-trace/src/event.rs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "test", "category", "events"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "test": { "type": "string", "minLength": 1 },
+    "category": { "type": "string", "minLength": 1 },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cycle", "kind", "detail"],
+        "properties": {
+          "cycle": { "type": "integer", "minimum": 0 },
+          "kind": { "type": "string", "minLength": 1 },
+          "detail": { "type": "string" }
+        }
+      }
+    }
+  }
+}

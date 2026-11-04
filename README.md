@@ -1,5 +1,7 @@
 # UTBH — Universal Test Benchmark Hardware
 
+**Status: 1.0.0 — stable.**
+
 Guest-side framework untuk **testing, validation, fuzzing, stress-testing,
 dan benchmarking** hardware secara universal: CPU, GPU, SoC, memory,
 interconnect, accelerator.
@@ -129,7 +131,7 @@ crates/
 └── utbh-cli/          binary `utbh`
 suites/                test packages (data-driven)
 configs/               profil run (quick / full / ci)
-schemas/               JSON Schema (sinkron dengan utbh-core)
+schemas/               JSON Schema (hardware/ result/ test/ trace/)
 results/               output (gitignored)
 doc/design.md          dokumen desain
 ```
