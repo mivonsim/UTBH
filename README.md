@@ -19,6 +19,24 @@ interconnect, accelerator.
 
 Detail desain: [`doc/design.md`](doc/design.md) · Aturan kontribusi: [`AGENTS.md`](AGENTS.md)
 
+## Target build
+
+UTBH bersifat guest-side. Tiga target ini dicek dan dirilis oleh CI:
+
+| Target | Peran |
+|---|---|
+| `riscv64gc-unknown-linux-gnu` | ISA guest `mivon emu` — target utama |
+| `x86_64-unknown-linux-gnu` | Guest x86_64 dan development/CI |
+| `aarch64-unknown-linux-gnu` | Guest ARM64 |
+
+```sh
+cargo check --workspace --target riscv64gc-unknown-linux-gnu
+cargo check --workspace --target x86_64-unknown-linux-gnu
+cargo check --workspace --target aarch64-unknown-linux-gnu
+```
+
+Artefak release `utbh` dihasilkan untuk ketiga target oleh job `release` di CI.
+
 ## Developer workflow
 
 UTBH berjalan **hanya di dalam guest OS yang di-boot mivon emulator** —

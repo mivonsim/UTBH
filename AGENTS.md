@@ -29,8 +29,11 @@ HOST
 - Tidak ada "VM backend" di dalam UTBH. Fidelity (fast emu / cycle-accurate /
   RTL-linked CPU / FPGA / ASIC) ditentukan environment di luar UTBH.
   Kode UTBH sama untuk ketiganya.
-- Wajib compile untuk ISA guest RISC-V: dicek CI dengan
-  `cargo check --target riscv64gc-unknown-linux-gnu --workspace`.
+- Wajib compile untuk tiga target release: `riscv64gc-unknown-linux-gnu`
+  (ISA guest mivon emu, target utama), `x86_64-unknown-linux-gnu`, dan
+  `aarch64-unknown-linux-gnu`. CI mengecek ketiganya
+  (`cargo check --target <target> --workspace`) dan membangun artefak release
+  per target.
 - Semua komunikasi ke hardware melewati `utbh-api` (`HardwareApi` trait).
   Crate lain **dilarang** membaca `/proc`, `/sys`, atau CPUID secara langsung.
 - semua file hanya memiliki 1 tangguh jawab tidak boleh lebih   

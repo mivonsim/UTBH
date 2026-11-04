@@ -16,6 +16,8 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
@@ -30,7 +32,7 @@ jobs:
         run: cargo build --release
 
       - name: Test
-        run: cargo test
+        run: cargo test --workspace
 
       # UTBH berjalan sebagai guest tool — di CI ini dijalankan langsung di
       # runner (bukan VM) sebagai smoke test harness-nya sendiri.
@@ -46,20 +48,78 @@ jobs:
       - name: Smoke — fuzz
         run: ./target/release/utbh fuzz cpu --seed 1 --iterations 16
 
-  # UTBH hanya berjalan di guest mivon emu (RISC-V). Host tidak pernah
-  # menjalankan utbh — tapi binary wajib compile untuk ISA guest.
-  guest-isa:
+  # UTBH bersifat guest-side dan didukung di tiga target: x86_64, aarch64,
+  # dan riscv64 (ISA guest mivon emu). Semua wajib type-check.
+  cross-isa:
+    name: check ${{ matrix.target }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - riscv64gc-unknown-linux-gnu
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: riscv64gc-unknown-linux-gnu
+          targets: ${{ matrix.target }}
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
 
-      - name: Check UTBH compile untuk ISA guest (riscv64 Linux)
-        run: cargo check --target riscv64gc-unknown-linux-gnu --workspace
+      - name: Check workspace for ${{ matrix.target }}
+        run: cargo check --workspace --target ${{ matrix.target }}
+
+  # Artefak release per target. RISC-V wajib (guest mivon emu); x86_64 dan
+  # aarch64 adalah target rilis resmi yang juga diuji.
+  release:
+    name: release ${{ matrix.target }}
+    needs: [test]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - riscv64gc-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+
+      - name: Install cross linker
+        if: matrix.target != 'x86_64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu gcc-riscv64-linux-gnu
+
+      - name: Build release for ${{ matrix.target }}
+        run: |
+          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
+            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+          elif [ "${{ matrix.target }}" = "riscv64gc-unknown-linux-gnu" ]; then
+            export CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_GNU_LINKER=riscv64-linux-gnu-gcc
+          fi
+          cargo build --release --workspace --target "${{ matrix.target }}"
+
+      - name: Upload utbh binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: utbh-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/utbh
+          if-no-files-found: error

@@ -179,6 +179,12 @@ mod tests {
         assert_eq!(detect_vector("x86_64", flags), "AVX512F");
         assert_eq!(detect_vector("x86_64", "flags : fpu sse2"), "SSE2");
         assert_eq!(detect_vector("riscv64", "rvv"), "RVV");
+        assert_eq!(detect_vector("riscv64", "flags : fpu"), "none");
+        assert_eq!(
+            detect_vector("aarch64", "Features : fp asimd"),
+            "NEON/ASIMD"
+        );
+        assert_eq!(detect_vector("aarch64", "Features : fp"), "none");
     }
 
     #[test]

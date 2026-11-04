@@ -42,7 +42,8 @@ Konsekuensi:
   virtual hardware. Deteksi hypervisor adalah urusan OS, bukan UTBH.
 - UTBH tidak memiliki "emulator backend". Fidelity ditentukan hardware
   environment di luar UTBH.
-- Wajib compile untuk ISA guest RISC-V (`riscv64gc-unknown-linux-gnu`).
+- Wajib compile untuk tiga target: `riscv64gc-unknown-linux-gnu` (ISA guest
+  mivon emu), `x86_64-unknown-linux-gnu`, dan `aarch64-unknown-linux-gnu`.
 
 ---
 
@@ -113,8 +114,9 @@ cargo build --release
 
 Urutan: `host → mivon emu → guest OS → Hardware API → UTBH`.
 
-Catatan build: UTBH harus compile untuk ISA guest (RISC-V
-`riscv64gc-unknown-linux-gnu` — dicek di CI).
+Catatan build: UTBH harus compile untuk tiga target — RISC-V
+`riscv64gc-unknown-linux-gnu` (ISA guest mivon emu), `x86_64-unknown-linux-gnu`,
+dan `aarch64-unknown-linux-gnu` — semuanya dicek dan dirilis di CI.
 
 ---
 
@@ -427,7 +429,7 @@ Host **hanya** menjalankan emulator + membandingkan hasil. Tidak ada
 | D6 | Tidak ada VM backend di UTBH | Satu binary untuk fast VM / cycle VM / RTL / FPGA / ASIC |
 | D7 | Output terpisah `.utbh-result` / `.utbh-trace` / `.utbh-report` | Mesin-baca vs manusia-baca dipisah |
 | D8 | Clone + build hanya di guest (`mivon emu`), host tidak menjalankan `utbh` | Invariant arsitektur §2 — host hanya menjalankan emulator |
-| D9 | Cross-check compile `riscv64gc-unknown-linux-gnu` di CI | ISA guest mivon emu = RISC-V; UTBH wajib build untuk situ |
+| D9 | Cross-check + release build `x86_64`, `aarch64`, `riscv64gc` di CI | RISC-V = ISA guest mivon emu; x86_64/aarch64 adalah target rilis resmi |
 
 ---
 
