@@ -76,6 +76,27 @@ pub fn render_report(results_dir: &Path) -> Result<String, String> {
                 get("bandwidth"),
                 get("gflops"),
             ));
+
+            // Metrik di luar kolom utama (cycles, latency_min, stress_*) tetap
+            // terlihat, bukan hilang dari laporan.
+            let extras: Vec<String> = o
+                .metrics
+                .iter()
+                .filter(|m| {
+                    !matches!(
+                        m.name.as_str(),
+                        "latency" | "throughput" | "bandwidth" | "gflops"
+                    )
+                })
+                .map(|m| format!("{}={:.3} {}", m.name, m.value, m.unit))
+                .collect();
+            if !extras.is_empty() {
+                out.push_str(&format!(
+                    "| ↳ {} | | | {} | | | |\n",
+                    o.name,
+                    extras.join(", ")
+                ));
+            }
         }
         out.push('\n');
     }
@@ -97,6 +118,7 @@ pub fn render_report(results_dir: &Path) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use utbh_core::{HardwareReport, Metric, TestOutcome};
 
     #[test]
     fn missing_results_dir_is_reported_clearly() {
@@ -104,5 +126,50 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         let err = render_report(&dir).unwrap_err();
         assert!(err.contains("tidak ada hasil"), "err = {}", err);
+    }
+
+    #[test]
+    fn report_keeps_non_headline_metrics() {
+        let dir = std::env::temp_dir().join(format!("utbh-report-metrics-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let outcome = TestOutcome {
+            name: "stress_x".into(),
+            category: "cpu".into(),
+            status: Status::Pass,
+            duration_ns: 0,
+            validation: None,
+            metrics: vec![
+                Metric {
+                    name: "latency".into(),
+                    value: 10.0,
+                    unit: "ns".into(),
+                },
+                Metric {
+                    name: "stress_degradation_ratio".into(),
+                    value: 1.5,
+                    unit: "x".into(),
+                },
+            ],
+            error: None,
+        };
+        let run = RunResult::new(
+            "r",
+            "stress",
+            "cpu",
+            HardwareReport::default(),
+            vec![outcome],
+            None,
+        );
+        run.save(&dir).unwrap();
+
+        let text = render_report(&dir).unwrap();
+        assert!(
+            text.contains("stress_degradation_ratio=1.500 x"),
+            "metrik stress harus tampil:\n{}",
+            text
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

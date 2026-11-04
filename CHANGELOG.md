@@ -27,6 +27,12 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/), versi mengikut
 - Profil dengan nama suite kosong ditolak.
 - GFLOPS hanya dihitung untuk operasi floating-point; operasi integer dan
   `compare` tidak lagi dilaporkan sebagai FLOP.
+- Ukuran kerja benchmark `reduce_sum`/`atomic_add`/`parallel_sum` memakai
+  jumlah elemen input, bukan panjang output (=1), sehingga throughput, GFLOPS,
+  dan bandwidth tidak lagi hampir nol.
+- Trace tidak lagi melabeli operand input sebagai `reference_value`.
+- Report menampilkan metrik non-headline (`cycles`, `latency_min`, `stress_*`)
+  sehingga hasil stress tidak kehilangan informasi.
 - Trace tidak lagi mengklaim event cycle-level yang tidak pernah diambil;
   event yang tidak tersedia ditandai eksplisit.
 - `memory.channels` tidak lagi diisi angka palsu 2; 0 berarti tidak diketahui

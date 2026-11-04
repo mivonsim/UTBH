@@ -47,8 +47,11 @@ pub fn execute_inputs(def: &TestDef, inp: &Inputs) -> Result<WorkloadOutput, Str
         },
     };
 
-    let elements = out.data.len() as u64;
-    let bytes = elements * out.data.elem_size() as u64;
+    // Ukuran kerja = jumlah elemen input. Output reduce/atomic/parallel hanya
+    // 1 elemen; memakai panjang output membuat throughput/GFLOPS/bandwidth
+    // hampir nol dan menyesatkan.
+    let elements = inp.a.len().max(1) as u64;
+    let bytes = elements * inp.a.elem_size() as u64;
     Ok(WorkloadOutput {
         data: out.data,
         elements,
@@ -288,6 +291,22 @@ mode = "exact"
     fn reduce_sums_to_one() {
         let o = execute(&def("reduce_sum", "u64", 64)).unwrap();
         assert_eq!(o.data.len(), 1);
+    }
+
+    #[test]
+    fn reduce_reports_input_work_size() {
+        let o = execute(&def("reduce_sum", "u64", 64)).unwrap();
+        assert_eq!(o.elements, 64, "ukuran kerja harus ukuran input");
+        assert_eq!(o.bytes, 64 * 8);
+    }
+
+    #[test]
+    fn atomic_and_parallel_report_input_work_size() {
+        for op in ["atomic_add", "parallel_sum"] {
+            let o = execute(&def(op, "u64", 128)).unwrap();
+            assert_eq!(o.elements, 128, "op {}", op);
+            assert_eq!(o.bytes, 128 * 8, "op {}", op);
+        }
     }
 
     #[test]

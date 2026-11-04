@@ -56,7 +56,7 @@ pub fn from_failure(
                 events.push(TraceEvent {
                     cycle,
                     kind: "memory_access".into(),
-                    detail: format!("index={} reference_value={:?}", idx, inputs.a.fmt_at(idx)),
+                    detail: format!("index={} operand_a={:?}", idx, inputs.a.fmt_at(idx)),
                 });
                 if let Some(b) = &inputs.b {
                     events.push(TraceEvent {
@@ -167,6 +167,16 @@ mode = "exact"
     fn exact_failure_includes_memory_snapshot() {
         let t = from_failure(&def(), &failed("exact", Some(3)), &StubApi, "r").unwrap();
         assert!(t.events.iter().any(|e| e.kind == "memory_access"));
+        assert!(
+            t.events.iter().any(|e| e.detail.contains("operand_a")),
+            "snapshot harus jelas ini operand input"
+        );
+        assert!(
+            !t.events
+                .iter()
+                .any(|e| e.detail.contains("reference_value")),
+            "operand input tidak boleh dilabeli reference_value"
+        );
     }
 
     #[test]
