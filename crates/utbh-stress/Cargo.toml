@@ -9,6 +9,7 @@ description = "UTBH Stress Engine — stability / degradation testing (benar ter
 utbh-core = { workspace = true }
 utbh-api = { workspace = true }
 utbh-validation = { workspace = true }
+utbh-workload = { workspace = true }
 
 [dev-dependencies]
 toml = { workspace = true }

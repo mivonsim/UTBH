@@ -66,9 +66,6 @@ pub fn format_report(d: &Discovery) -> String {
         r.memory.channels.to_string()
     };
     out.push_str(&format!("  Channels : {}\n", channels));
-    if let Some(bw) = d.mem_bandwidth_gbs {
-        out.push_str(&format!("  Bandwidth: {:.1} GB/s\n", bw));
-    }
     out.push('\n');
 
     out.push_str("Interconnect\n");
@@ -94,7 +91,6 @@ mod tests {
     fn format_default_report() {
         let d = Discovery {
             report: HardwareReport::default(),
-            mem_bandwidth_gbs: None,
         };
         let text = format_report(&d);
         assert!(text.contains("(none detected)"));
@@ -106,7 +102,6 @@ mod tests {
     fn unknown_channels_are_not_reported_as_a_number() {
         let d = Discovery {
             report: HardwareReport::default(),
-            mem_bandwidth_gbs: None,
         };
         let text = format_report(&d);
         assert!(text.contains("Channels : unknown"), "{}", text);

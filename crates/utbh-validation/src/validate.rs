@@ -2,13 +2,20 @@
 
 use crate::compare::compare;
 use crate::reference::reference;
-use utbh_core::{TestDef, ValidationInfo};
+use utbh_core::{Data, TestDef, ValidationInfo};
 use utbh_workload::execute;
 
 /// Validasi satu test definition → info PASS/FAIL.
 pub fn validate(def: &TestDef) -> Result<ValidationInfo, String> {
     let exec = execute(def)?;
-    let reference = reference(def)?;
+    validate_output(def, &exec.data)
+}
+
+/// Validasi hasil eksekusi yang sudah ada terhadap reference.
+///
+/// Dipakai stress agar region pengukuran latency hanya berisi workload —
+/// bukan generate input + eksekusi reference.
+pub fn validate_output(def: &TestDef, exec: &Data) -> Result<ValidationInfo, String> {
     let mode = def.validation.mode.as_str();
 
     match mode {
@@ -30,11 +37,12 @@ pub fn validate(def: &TestDef) -> Result<ValidationInfo, String> {
         }
     }
 
+    let reference = reference(def)?;
     let tol = def
         .validation
         .tolerance
         .unwrap_or(if mode == "approx" { 1e-5 } else { 0.0 });
-    let c = compare(&reference, &exec.data, mode, tol);
+    let c = compare(&reference, exec, mode, tol);
 
     Ok(ValidationInfo {
         mode: mode.to_string(),
@@ -84,5 +92,14 @@ mode = "{}"
     #[test]
     fn exact_mode_validates() {
         assert!(validate(&def("exact")).unwrap().matched);
+    }
+
+    #[test]
+    fn validate_output_agrees_with_validate() {
+        let d = def("exact");
+        let exec = utbh_workload::execute(&d).unwrap();
+        let v = validate_output(&d, &exec.data).unwrap();
+        assert!(v.matched);
+        assert_eq!(v.mismatches, 0);
     }
 }

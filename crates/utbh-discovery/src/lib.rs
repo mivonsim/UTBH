@@ -16,11 +16,12 @@ pub use render::format_report;
 use utbh_core::HardwareReport;
 
 /// Hasil discovery lengkap.
+///
+/// Discovery hanya melaporkan kapasitas/identitas hardware. Bandwidth terukur
+/// adalah urusan benchmark (Layer 5), bukan discovery.
 #[derive(Debug, Clone)]
 pub struct Discovery {
     pub report: HardwareReport,
-    /// Estimasi memory bandwidth terukur (opsional, diisi probe).
-    pub mem_bandwidth_gbs: Option<f64>,
 }
 
 #[cfg(test)]

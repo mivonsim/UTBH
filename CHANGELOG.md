@@ -33,6 +33,10 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/), versi mengikut
   ditulis), bukan hanya operand pertama. `add` = 3×, `fma` = 4×, `matmul` = 3×
   ukuran elemen.
 - `.utbh-report.md` ditulis atomik seperti artefak hasil/trace.
+- Latency stress hanya mengukur eksekusi workload; generate input dan eksekusi
+  reference tidak lagi masuk region pengukuran.
+- Field `Discovery.mem_bandwidth_gbs` dihapus karena selalu `None`; bandwidth
+  memori diukur benchmark (Layer 5), bukan diklaim discovery.
 - Ukuran kerja benchmark `reduce_sum`/`atomic_add`/`parallel_sum` memakai
   jumlah elemen input, bukan panjang output (=1), sehingga throughput, GFLOPS,
   dan bandwidth tidak lagi hampir nol.

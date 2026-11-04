@@ -2,8 +2,9 @@
 
 use crate::config::StressConfig;
 use utbh_api::HardwareApi;
-use utbh_core::{Status, TestDef, TestOutcome, ValidationInfo};
-use utbh_validation::validate;
+use utbh_core::{inputs, Status, TestDef, TestOutcome, ValidationInfo};
+use utbh_validation::validate_output;
+use utbh_workload::execute_inputs;
 
 /// Satu window pengamatan latensi.
 pub struct Window {
@@ -40,7 +41,11 @@ impl StressReport {
     }
 }
 
-/// Stress satu test: `iterations` × validate + ukur latensi.
+/// Stress satu test: `iterations` × eksekusi workload + validasi.
+///
+/// Input disiapkan sekali; latency hanya mengukur eksekusi workload. Validasi
+/// (reference independen) berjalan setelah timer berhenti agar rasio degradasi
+/// tidak terdilusi oleh biaya generator dan reference.
 pub fn stress(def: &TestDef, api: &dyn HardwareApi, cfg: &StressConfig) -> StressReport {
     if let Err(e) = cfg.validate() {
         return StressReport {
@@ -61,12 +66,15 @@ pub fn stress(def: &TestDef, api: &dyn HardwareApi, cfg: &StressConfig) -> Stres
     let mut fail = 0usize;
     let mut first_fail_at = None;
     let mut first_error = None;
+    let prepared = inputs(def);
 
     for i in 0..cfg.iterations {
         let t0 = api.timer_ns();
-        let outcome = validate(def);
+        let exec = execute_inputs(def, &prepared);
         let dt = api.timer_ns().saturating_sub(t0);
         latencies.push(dt as f64);
+
+        let outcome = exec.and_then(|o| validate_output(def, &o.data));
 
         match outcome {
             Ok(v) if v.matched => pass += 1,

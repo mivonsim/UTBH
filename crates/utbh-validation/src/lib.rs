@@ -21,7 +21,7 @@ pub mod validate;
 
 pub use compare::compare;
 pub use reference::reference;
-pub use validate::validate;
+pub use validate::{validate, validate_output};
 
 #[cfg(test)]
 mod tests {
