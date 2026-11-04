@@ -10,6 +10,14 @@ use std::path::{Path, PathBuf};
 ///
 /// `test.name` berasal dari file data, jadi tidak boleh dipercaya sebagai
 /// path component apa adanya.
+fn no_trace_message(run_id: &str, dir: &Path) -> String {
+    format!(
+        "tidak ada trace untuk run-id '{}' di {} (trace hanya dihasilkan saat ada FAIL)",
+        run_id,
+        dir.display()
+    )
+}
+
 fn safe_component(s: &str) -> String {
     s.chars()
         .map(|c| {
@@ -47,7 +55,14 @@ pub fn load(path: &Path) -> Result<Trace, String> {
 
 /// Semua trace milik satu run-id (prefix match), terurut per nama test.
 pub fn load_all(dir: &Path, run_id: &str) -> Result<Vec<Trace>, String> {
-    let entries = std::fs::read_dir(dir).map_err(|e| format!("{}: {}", dir.display(), e))?;
+    let entries = match std::fs::read_dir(dir) {
+        Ok(entries) => entries,
+        // Direktori results belum ada = belum ada trace, bukan I/O error mentah.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Err(no_trace_message(run_id, dir));
+        }
+        Err(e) => return Err(format!("{}: {}", dir.display(), e)),
+    };
     let prefix = safe_component(run_id);
     let mut traces = Vec::new();
     let mut last_err: Option<String> = None;
@@ -65,14 +80,7 @@ pub fn load_all(dir: &Path, run_id: &str) -> Result<Vec<Trace>, String> {
         }
     }
     if traces.is_empty() {
-        return Err(match last_err {
-            Some(e) => e,
-            None => format!(
-                "tidak ada trace untuk run-id '{}' di {} (trace hanya dihasilkan saat ada FAIL)",
-                run_id,
-                dir.display()
-            ),
-        });
+        return Err(last_err.unwrap_or_else(|| no_trace_message(run_id, dir)));
     }
     traces.sort_by(|a, b| a.test.cmp(&b.test));
     Ok(traces)
@@ -155,7 +163,20 @@ mod tests {
         let dir = std::env::temp_dir().join(format!("utbh-trace-none-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
-        assert!(load_all(&dir, "nope").is_err());
+        let err = load_all(&dir, "nope").unwrap_err();
+        assert!(err.contains("tidak ada trace"));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn missing_results_dir_reports_no_trace() {
+        let dir = std::env::temp_dir().join(format!("utbh-trace-nodir-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let err = load_all(&dir, "nope").unwrap_err();
+        assert!(
+            err.contains("tidak ada trace"),
+            "error harus ramah, bukan I/O mentah: {}",
+            err
+        );
     }
 }

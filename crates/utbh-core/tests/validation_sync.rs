@@ -1,44 +1,90 @@
-//! Sinkronisasi file test *.utbh dengan integrasi test validasi (AGENTS.md #6).
+//! Integrasi: suite repo harus deterministik dan punya validasi.
 //!
-//! Integrasi test ini memastikan:
-//! 1. Semua test suite punya [validation] yang terisi.
-//! 2. validation.mode entah "exact" atau "approx".
-//! 3. Test baru deterministik: seed tetap, input dari generate_inputs().
-//!
-//! Integrasi test ini dijalankan oleh `cargo test` (CI + lokal) dan sebagai
-//! bagian dari integrasi review yang dilakukan CI.
-//!
+//! Menjaga aturan AGENTS.md #4 (test deterministik) dan #6 (setiap test wajib
+//! punya `[validation]`). Dijalankan oleh `cargo test` di CI dan lokal.
+
+use std::collections::HashSet;
 use std::path::Path;
-use utbh_core::load_all;
+use utbh_core::{inputs, load_all, TestDef};
+
+fn repo_suites() -> Option<Vec<TestDef>> {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../suites");
+    if !root.is_dir() {
+        return None;
+    }
+    Some(load_all(&root).expect("suites repo valid"))
+}
 
 #[test]
 fn all_suites_have_validation() {
-    // Muat semua suite test dari repo.
-    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../suites");
-    if !root.is_dir() {
-        return; // SKIP jika suites tidak ada (misalnya integrasi test lokal)
-    }
-    let defs = load_all(&root).expect("suites valid");
-    assert!(
-        !defs.is_empty(),
-        "tidak ada file suite test – periksa suites/"
-    );
+    let Some(defs) = repo_suites() else {
+        return;
+    };
+    assert!(!defs.is_empty(), "tidak ada test di suites/");
 
     for def in &defs {
-        // 1. Pastikan test punya [validation] yang terisi.
-        //    TestDef selalu punya field validation (wajib di Rust) — periksa apakah file suite test punya [validation].
-        //    Meskipun field punya default, test suite .utbh wajib punya [validation], yang ter-parse dengan benar.
-        //    Kita hanya perlu memeriksa integrasi test mode field.
-        let mode = &def.validation.mode;
         assert!(
-            mode == "exact" || mode == "approx",
-            "test {}: validation.mode tidak diizinkan: {} (hanya exact/approx)",
+            matches!(def.validation.mode.as_str(), "exact" | "approx"),
+            "test {}: validation.mode '{}' tidak diizinkan (pakai exact/approx)",
             def.test.name,
-            mode
+            def.validation.mode
         );
+        assert!(
+            !def.operation.op.is_empty(),
+            "test {}: operation.op kosong",
+            def.test.name
+        );
+        assert!(
+            def.input.elements > 0,
+            "test {}: input.elements harus > 0",
+            def.test.name
+        );
+        assert!(
+            !def.test.category.is_empty(),
+            "test {}: category kosong",
+            def.test.name
+        );
+    }
+}
 
-        // 3. Test deterministik: seed tetap, input dari generate_inputs().
-        //    Integrasi test ini mengandalkan integrasi test deterministik yang diimplementasi
-        //    di utbh-core::data.
+#[test]
+fn suite_test_names_are_unique() {
+    let Some(defs) = repo_suites() else {
+        return;
+    };
+    let mut seen = HashSet::new();
+    for def in &defs {
+        assert!(
+            seen.insert(def.test.name.clone()),
+            "nama test duplikat: {}",
+            def.test.name
+        );
+    }
+}
+
+#[test]
+fn suite_inputs_are_deterministic() {
+    let Some(defs) = repo_suites() else {
+        return;
+    };
+    for def in &defs {
+        let first = inputs(def);
+        let second = inputs(def);
+        assert_eq!(
+            first.a, second.a,
+            "test {}: operand A tidak deterministik",
+            def.test.name
+        );
+        assert_eq!(
+            first.b, second.b,
+            "test {}: operand B tidak deterministik",
+            def.test.name
+        );
+        assert_eq!(
+            first.c, second.c,
+            "test {}: operand C tidak deterministik",
+            def.test.name
+        );
+        assert!(!first.a.is_empty(), "test {}: input kosong", def.test.name);
     }
 }
