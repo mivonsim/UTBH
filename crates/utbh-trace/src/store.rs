@@ -6,9 +6,29 @@
 use crate::event::Trace;
 use std::path::{Path, PathBuf};
 
+/// Komponen nama file yang aman: tanpa `/`, `\`, atau `..`.
+///
+/// `test.name` berasal dari file data, jadi tidak boleh dipercaya sebagai
+/// path component apa adanya.
+fn safe_component(s: &str) -> String {
+    s.chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || matches!(c, '-' | '_') {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect()
+}
+
 /// Nama file trace: `<run_id>.<test>.utbh-trace.json`.
 pub fn filename(trace: &Trace) -> String {
-    format!("{}.{}.utbh-trace.json", trace.run_id, trace.test)
+    format!(
+        "{}.{}.utbh-trace.json",
+        safe_component(&trace.run_id),
+        safe_component(&trace.test)
+    )
 }
 
 pub fn save(trace: &Trace, dir: &Path) -> std::io::Result<PathBuf> {
@@ -28,12 +48,13 @@ pub fn load(path: &Path) -> Result<Trace, String> {
 /// Semua trace milik satu run-id (prefix match), terurut per nama test.
 pub fn load_all(dir: &Path, run_id: &str) -> Result<Vec<Trace>, String> {
     let entries = std::fs::read_dir(dir).map_err(|e| format!("{}: {}", dir.display(), e))?;
+    let prefix = safe_component(run_id);
     let mut traces = Vec::new();
     let mut last_err: Option<String> = None;
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().to_string();
         // Prefix harus diikuti '.' — "run-1" tidak boleh menangkap "run-10".
-        let after = name.strip_prefix(run_id);
+        let after = name.strip_prefix(&prefix);
         let matched = matches!(after, Some(rest) if rest.starts_with('.'))
             && name.ends_with(".utbh-trace.json");
         if matched {
@@ -103,6 +124,29 @@ mod tests {
         let all = load_all(&dir, "run-1").unwrap();
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].test, "a");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn filename_is_path_safe() {
+        let t = sample("run/../1", "a/b");
+        let name = filename(&t);
+        assert!(
+            !name.contains('/'),
+            "nama trace tidak boleh berisi path: {}",
+            name
+        );
+        assert_eq!(name, "run____1.a_b.utbh-trace.json");
+    }
+
+    #[test]
+    fn sanitized_run_id_still_loads() {
+        let dir = std::env::temp_dir().join(format!("utbh-trace-safe-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        save(&sample("run/../1", "a/b"), &dir).unwrap();
+        let all = load_all(&dir, "run/../1").unwrap();
+        assert_eq!(all.len(), 1);
+        assert_eq!(all[0].test, "a/b");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

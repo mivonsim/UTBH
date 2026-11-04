@@ -21,7 +21,8 @@ pub fn compare(expected: &Data, actual: &Data, mode: &str, tol: f64) -> CompareO
             matched: false,
             mismatches: expected.len().max(actual.len()),
             first_mismatch: Some(0),
-            max_rel_error: f64::INFINITY,
+            // Finite: JSON tidak punya Infinity, `null` akan melanggar schema.
+            max_rel_error: f64::MAX,
         };
     }
 
@@ -34,9 +35,9 @@ pub fn compare(expected: &Data, actual: &Data, mode: &str, tol: f64) -> CompareO
     for i in 0..expected.len() {
         let abs = elem_abs_error(expected, actual, i);
         let rel = if abs.is_finite() {
-            abs / scale
+            (abs / scale).min(f64::MAX)
         } else {
-            f64::INFINITY
+            f64::MAX
         };
         max_rel = max_rel.max(rel);
         let ok = if abs.is_finite() {
@@ -111,9 +112,21 @@ mod tests {
     }
 
     #[test]
-    fn dtype_mismatch_is_infinite_error() {
+    fn dtype_mismatch_is_reported_finite() {
         let a = Data::F32(vec![1.0]);
         let b = Data::U64(vec![1]);
-        assert!(!compare(&a, &b, "approx", 1.0).matched);
+        let c = compare(&a, &b, "approx", 1.0);
+        assert!(!c.matched);
+        assert!(
+            c.max_rel_error.is_finite(),
+            "max_rel_error harus finite agar JSON tetap valid"
+        );
+    }
+
+    #[test]
+    fn length_mismatch_error_is_finite() {
+        let a = Data::F32(vec![1.0, 2.0]);
+        let b = Data::F32(vec![1.0]);
+        assert!(compare(&a, &b, "exact", 0.0).max_rel_error.is_finite());
     }
 }

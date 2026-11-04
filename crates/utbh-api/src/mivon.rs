@@ -97,13 +97,19 @@ impl HardwareApi for MivonHardwareApi {
     }
 
     fn cpu_frequency_hz(&self) -> u64 {
-        probe::scaling_freq_hz().unwrap_or_else(|| {
-            let mhz = self.hardware_report().cpu.frequency_mhz;
-            if mhz > 0 {
-                mhz * 1_000_000
-            } else {
-                1_000_000_000 // konservatif: 1 GHz default
-            }
+        // `cycles()` memanggil ini dua kali per iterasi benchmark. Tanpa cache,
+        // setiap panggilan membaca /proc/cpuinfo + sysfs dan menggeser hasil
+        // pengukuran. Frekuensi hardware tidak berubah selama satu run.
+        static FREQ_HZ: std::sync::OnceLock<u64> = std::sync::OnceLock::new();
+        *FREQ_HZ.get_or_init(|| {
+            probe::scaling_freq_hz().unwrap_or_else(|| {
+                let mhz = self.hardware_report().cpu.frequency_mhz;
+                if mhz > 0 {
+                    mhz * 1_000_000
+                } else {
+                    1_000_000_000 // konservatif: 1 GHz default
+                }
+            })
         })
     }
 
@@ -153,6 +159,14 @@ mod tests {
         let a = api.timer_ns();
         let b = api.timer_ns();
         assert!(b >= a);
+    }
+
+    #[test]
+    fn frequency_is_cached_and_positive() {
+        let api = MivonHardwareApi::new();
+        let first = api.cpu_frequency_hz();
+        assert!(first > 0);
+        assert_eq!(first, api.cpu_frequency_hz());
     }
 
     #[test]

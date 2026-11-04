@@ -107,7 +107,8 @@ pub fn gen_u64(seed: u64, n: usize) -> Vec<u64> {
 
 pub fn gen_i64(seed: u64, n: usize) -> Vec<i64> {
     let mut rng = Rng::new(seed);
-    (0..n).map(|_| (rng.next_u64() >> 1) as i64).collect()
+    // Full range (termasuk negatif) — integer test harus menguji sign handling.
+    (0..n).map(|_| rng.next_u64() as i64).collect()
 }
 
 #[cfg(test)]
@@ -181,6 +182,14 @@ mode = "exact"
             assert!(first.c.is_some());
             assert_ne!(first.b, first.c);
         }
+    }
+
+    #[test]
+    fn gen_i64_covers_both_signs() {
+        let v = gen_i64(1, 256);
+        assert!(v.iter().any(|x| *x < 0), "i64 harus mencakup nilai negatif");
+        assert!(v.iter().any(|x| *x > 0), "i64 harus mencakup nilai positif");
+        assert_eq!(v, gen_i64(1, 256), "harus deterministik");
     }
 
     #[test]

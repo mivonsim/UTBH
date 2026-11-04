@@ -246,6 +246,8 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                     }
                     let outcomes: Vec<TestOutcome> =
                         reports.iter().map(utbh_stress::to_outcome).collect();
+                    // FAIL di stress juga harus punya trace (Layer 7).
+                    save_traces(&defs, &outcomes, &api, &cli.results, &run_id);
                     print_test_results(&outcomes);
                     for r in &reports {
                         if let Some(first) = r.first_fail_at {

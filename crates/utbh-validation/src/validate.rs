@@ -11,14 +11,23 @@ pub fn validate(def: &TestDef) -> Result<ValidationInfo, String> {
     let reference = reference(def)?;
     let mode = def.validation.mode.as_str();
 
-    if mode == "none" {
-        return Ok(ValidationInfo {
-            mode: mode.to_string(),
-            matched: true,
-            mismatches: 0,
-            first_mismatch: None,
-            max_rel_error: 0.0,
-        });
+    match mode {
+        "none" => {
+            return Ok(ValidationInfo {
+                mode: mode.to_string(),
+                matched: true,
+                mismatches: 0,
+                first_mismatch: None,
+                max_rel_error: 0.0,
+            });
+        }
+        "exact" | "approx" => {}
+        other => {
+            return Err(format!(
+                "validation.mode '{}' tidak dikenal (pakai exact/approx/none)",
+                other
+            ));
+        }
     }
 
     let tol = def
@@ -34,4 +43,46 @@ pub fn validate(def: &TestDef) -> Result<ValidationInfo, String> {
         first_mismatch: c.first_mismatch,
         max_rel_error: c.max_rel_error,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn def(mode: &str) -> TestDef {
+        toml::from_str(&format!(
+            r#"
+[test]
+name = "t"
+category = "cpu"
+[input]
+elements = 64
+type = "f32"
+[operation]
+op = "add"
+[validation]
+mode = "{}"
+"#,
+            mode
+        ))
+        .unwrap()
+    }
+
+    #[test]
+    fn unknown_mode_is_rejected() {
+        let err = validate(&def("approx-ish")).unwrap_err();
+        assert!(err.contains("tidak dikenal"), "err = {}", err);
+    }
+
+    #[test]
+    fn none_mode_explicitly_matches() {
+        let v = validate(&def("none")).unwrap();
+        assert!(v.matched);
+        assert_eq!(v.mismatches, 0);
+    }
+
+    #[test]
+    fn exact_mode_validates() {
+        assert!(validate(&def("exact")).unwrap().matched);
+    }
 }
