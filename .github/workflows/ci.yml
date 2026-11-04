@@ -1,8 +1,8 @@
 name: CI
 
 on:
+  # Semua branch diverifikasi; artefak rilis tetap dibatasi ke main/tag.
   push:
-    branches: [main]
   pull_request:
 
 env:

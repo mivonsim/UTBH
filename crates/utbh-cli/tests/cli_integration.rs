@@ -252,6 +252,27 @@ fn cli_stress_reports_no_failure() {
 }
 
 #[test]
+fn cli_rejects_zero_iterations_and_window() {
+    let f = Fixture::new("zero");
+    let cases: [&[&str]; 4] = [
+        &["benchmark", "tiny", "--iterations", "0"],
+        &["run", "tiny", "--iterations", "0"],
+        &["fuzz", "tiny", "--iterations", "0"],
+        &["stress", "tiny", "--window", "0"],
+    ];
+    for args in cases {
+        let output = f.run(args);
+        assert!(!output.status.success(), "harus ditolak: {:?}", args);
+        assert!(
+            stderr(&output).contains("> 0"),
+            "{:?}: stderr={}",
+            args,
+            stderr(&output)
+        );
+    }
+}
+
+#[test]
 fn cli_duplicate_test_names_are_rejected() {
     let f = Fixture::new("duplicate");
     fs::create_dir_all(f.suites().join("extra")).unwrap();

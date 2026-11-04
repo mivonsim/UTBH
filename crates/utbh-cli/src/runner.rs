@@ -39,9 +39,13 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
             ExitCode::SUCCESS
         }
         Command::List => match crate::list::render(&cli.suites) {
-            Ok(text) => {
-                print!("{}", text);
-                ExitCode::SUCCESS
+            Ok(listing) => {
+                print!("{}", listing.text);
+                if listing.had_errors {
+                    ExitCode::FAILURE
+                } else {
+                    ExitCode::SUCCESS
+                }
             }
             Err(e) => fail(&e),
         },
@@ -68,6 +72,9 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
             let suites = suites_of(&suite);
             let label = suite_label(&suites);
             let iterations = iterations.or_else(|| prof.and_then(|p| p.iterations));
+            if matches!(iterations, Some(0)) {
+                return fail("--iterations harus > 0");
+            }
             let warmup = crate::profile::Profile::resolve(warmup, prof.and_then(|p| p.warmup), 3);
             let run_id = utbh_core::new_run_id();
             match load_multi(&cli.suites, &suites) {
@@ -106,6 +113,9 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
             let suites = suites_of(&suite);
             let label = suite_label(&suites);
             let iterations = iterations.or_else(|| prof.and_then(|p| p.iterations));
+            if matches!(iterations, Some(0)) {
+                return fail("--iterations harus > 0");
+            }
             let warmup = crate::profile::Profile::resolve(warmup, prof.and_then(|p| p.warmup), 3);
             let run_id = utbh_core::new_run_id();
             match load_multi(&cli.suites, &suites) {
@@ -138,6 +148,9 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                 prof.and_then(|p| p.fuzz_iterations),
                 64,
             );
+            if iterations == 0 {
+                return fail("iterations fuzz harus > 0");
+            }
             let run_id = utbh_core::new_run_id();
             let cfg = utbh_fuzz::FuzzConfig { seed, iterations };
 
@@ -229,6 +242,9 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
             );
             let window =
                 crate::profile::Profile::resolve(window, prof.and_then(|p| p.stress_window), 20);
+            if iterations == 0 || window == 0 {
+                return fail("--iterations dan --window harus > 0");
+            }
             let run_id = utbh_core::new_run_id();
             match load_multi(&cli.suites, &suites) {
                 Ok(defs) => {

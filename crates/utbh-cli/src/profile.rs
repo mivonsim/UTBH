@@ -37,6 +37,12 @@ impl Profile {
 
     /// Validasi nilai yang harus positif.
     pub fn validate(&self) -> Result<(), String> {
+        if self.suites.iter().any(|s| s.trim().is_empty()) {
+            return Err(format!(
+                "profil '{}': suites tidak boleh berisi nama kosong",
+                self.name
+            ));
+        }
         if let Some(0) = self.iterations {
             return Err(format!("profil '{}': iterations harus > 0", self.name));
         }
@@ -106,6 +112,16 @@ mod tests {
         let p = Profile {
             name: "x".into(),
             iterations: Some(0),
+            ..Default::default()
+        };
+        assert!(p.validate().is_err());
+    }
+
+    #[test]
+    fn rejects_empty_suite_name() {
+        let p = Profile {
+            name: "x".into(),
+            suites: vec!["cpu".into(), "  ".into()],
             ..Default::default()
         };
         assert!(p.validate().is_err());

@@ -18,6 +18,13 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/), versi mengikut
 
 ### Fixed
 
+- CI berjalan di semua branch (bukan hanya `main`).
+- `utbh list` keluar nonzero bila ada suite yang gagal dimuat, tanpa
+  menyembunyikan suite lain yang valid.
+- `--iterations 0` dan `--window 0` ditolak, bukan diam-diam di-clamp.
+- Profil dengan nama suite kosong ditolak.
+- GFLOPS hanya dihitung untuk operasi floating-point; operasi integer dan
+  `compare` tidak lagi dilaporkan sebagai FLOP.
 - Hasil dan trace ditulis atomik (tidak ada JSON setengah jadi).
 - `utbh report` pada direktori hasil yang belum ada memberi pesan jelas.
 - `RunResult::load` menolak hasil dari schema yang lebih baru.

@@ -4,17 +4,24 @@ use crate::sample::Sample;
 use utbh_core::{Metric, TestDef};
 use utbh_workload::Op;
 
-/// FLOPS per iterasi (0 kalau bukan operasi aritmetika).
+/// FLOPS per iterasi (0 kalau bukan operasi floating-point aritmetika).
+///
+/// GFLOPS hanya bermakna untuk f32. Operasi integer dan `compare` tidak boleh
+/// dilaporkan sebagai FLOP — itu metrik yang menyesatkan.
 pub fn count_flops(def: &TestDef, elements: u64) -> u64 {
+    if def.input.dtype != "f32" {
+        return 0;
+    }
     match Op::parse(&def.operation.op) {
-        Ok(Op::Add) | Ok(Op::Sub) | Ok(Op::Mul) => elements,
+        Ok(Op::Add) | Ok(Op::Sub) | Ok(Op::Mul) | Ok(Op::ReduceSum) | Ok(Op::ParallelSum) => {
+            elements
+        }
         Ok(Op::Fma) => elements.saturating_mul(2),
         Ok(Op::MatMul) => {
             // n×n × n×n: 2·n³ FLOP
             let n = (elements as f64).sqrt().floor() as u64;
             2u64.saturating_mul(n.saturating_mul(n).saturating_mul(n))
         }
-        Ok(Op::ReduceSum) | Ok(Op::Compare) | Ok(Op::AtomicAdd) | Ok(Op::ParallelSum) => elements,
         _ => 0,
     }
 }
@@ -101,6 +108,66 @@ mode = "approx"
         )
         .unwrap();
         assert_eq!(count_flops(&d, 400), 2 * 20 * 20 * 20);
+    }
+
+    #[test]
+    fn integer_add_has_no_flops() {
+        let d = toml::from_str::<TestDef>(
+            r#"
+[test]
+name = "i"
+category = "cpu.integer"
+[input]
+elements = 128
+type = "u64"
+[operation]
+op = "add"
+[validation]
+mode = "exact"
+"#,
+        )
+        .unwrap();
+        assert_eq!(count_flops(&d, 128), 0);
+    }
+
+    #[test]
+    fn compare_has_no_flops() {
+        let d = toml::from_str::<TestDef>(
+            r#"
+[test]
+name = "c"
+category = "cpu"
+[input]
+elements = 64
+type = "f32"
+[operation]
+op = "compare"
+[validation]
+mode = "exact"
+"#,
+        )
+        .unwrap();
+        assert_eq!(count_flops(&d, 64), 0);
+    }
+
+    #[test]
+    fn fma_counts_two_flops_per_element() {
+        let d = toml::from_str::<TestDef>(
+            r#"
+[test]
+name = "f"
+category = "cpu"
+[input]
+elements = 32
+type = "f32"
+[operation]
+op = "fma"
+[validation]
+mode = "approx"
+"#,
+        )
+        .unwrap();
+        assert_eq!(count_flops(&d, 32), 64);
     }
 
     #[test]
