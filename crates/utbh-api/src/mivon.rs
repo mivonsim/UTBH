@@ -133,8 +133,9 @@ impl HardwareApi for MivonHardwareApi {
         if size == 0 {
             return Err("size 0".into());
         }
-        // Buffer aligned besar ≈ DMA-able region. OS dengan IOMMU memetakan
-        // buffer user ke region DMA.
+        // Buffer besar untuk workload DMA/NoC. Alignment mengikuti allocator
+        // (bukan jaminan page-aligned). OS dengan IOMMU memetakan buffer user
+        // ke region DMA.
         let mut v = Vec::with_capacity(size + 64);
         v.resize(size, 0u8);
         Ok(v)

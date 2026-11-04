@@ -45,11 +45,13 @@ pub fn validate_def(def: &TestDef) -> Result<(), String> {
             ));
         }
     }
+    // Engine tetap mendukung `none` untuk pemanggil programatik, tetapi
+    // definisi suite wajib divalidasi (AGENTS.md aturan #6).
     match def.validation.mode.as_str() {
-        "exact" | "approx" | "none" => {}
+        "exact" | "approx" => {}
         other => {
             return Err(format!(
-                "test {}: validation.mode '{}' tidak dikenal (exact/approx/none)",
+                "test {}: validation.mode '{}' tidak diizinkan (pakai exact/approx)",
                 name, other
             ));
         }
@@ -193,6 +195,14 @@ mode = "exact"
         let mut d = base();
         d.validation.mode = "approximate".into();
         assert!(validate_def(&d).unwrap_err().contains("validation.mode"));
+    }
+
+    #[test]
+    fn rejects_unvalidated_suite_test() {
+        let mut d = base();
+        d.validation.mode = "none".into();
+        let err = validate_def(&d).unwrap_err();
+        assert!(err.contains("validation.mode"), "err = {}", err);
     }
 
     #[test]

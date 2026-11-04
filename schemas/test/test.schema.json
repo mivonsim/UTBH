@@ -46,8 +46,8 @@
       "properties": {
         "mode": {
           "type": "string",
-          "enum": ["exact", "approx", "none"],
-          "description": "exact = identik; approx = tolerance; none = tanpa validasi (hindari)."
+          "enum": ["exact", "approx"],
+          "description": "exact = identik; approx = tolerance. Test suite wajib divalidasi."
         },
         "tolerance": { "type": ["number", "null"], "minimum": 0 }
       }

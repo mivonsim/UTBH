@@ -51,7 +51,18 @@ pub fn execute_inputs(def: &TestDef, inp: &Inputs) -> Result<WorkloadOutput, Str
     // 1 elemen; memakai panjang output membuat throughput/GFLOPS/bandwidth
     // hampir nol dan menyesatkan.
     let elements = inp.a.len().max(1) as u64;
-    let bytes = elements * inp.a.elem_size() as u64;
+    let in_bytes = elements * inp.a.elem_size() as u64;
+    let out_bytes = out.data.len() as u64 * out.data.elem_size() as u64;
+    // Byte yang benar-benar disentuh: operand dibaca + hasil ditulis.
+    let bytes = match op {
+        Op::Add | Op::Sub | Op::Mul | Op::Compare => {
+            in_bytes.saturating_mul(2).saturating_add(out_bytes)
+        }
+        Op::Fma => in_bytes.saturating_mul(3).saturating_add(out_bytes),
+        // Dua matriks input + satu matriks hasil (masing-masing n²).
+        Op::MatMul => out_bytes.saturating_mul(3),
+        _ => in_bytes.saturating_add(out_bytes),
+    };
     Ok(WorkloadOutput {
         data: out.data,
         elements,
@@ -235,7 +246,7 @@ mode = "exact"
         let o = execute(&def("add", "f32", 100)).unwrap();
         assert_eq!(o.data.len(), 100);
         assert_eq!(o.elements, 100);
-        assert_eq!(o.bytes, 100 * 4);
+        assert_eq!(o.bytes, 100 * 4 * 3, "baca A, baca B, tulis hasil");
     }
 
     #[test]
@@ -297,7 +308,7 @@ mode = "exact"
     fn reduce_reports_input_work_size() {
         let o = execute(&def("reduce_sum", "u64", 64)).unwrap();
         assert_eq!(o.elements, 64, "ukuran kerja harus ukuran input");
-        assert_eq!(o.bytes, 64 * 8);
+        assert_eq!(o.bytes, 64 * 8 + 8, "baca input + tulis satu hasil");
     }
 
     #[test]
@@ -305,14 +316,21 @@ mode = "exact"
         for op in ["atomic_add", "parallel_sum"] {
             let o = execute(&def(op, "u64", 128)).unwrap();
             assert_eq!(o.elements, 128, "op {}", op);
-            assert_eq!(o.bytes, 128 * 8, "op {}", op);
+            assert_eq!(o.bytes, 128 * 8 + 8, "op {}", op);
         }
+    }
+
+    #[test]
+    fn fma_counts_all_operand_traffic() {
+        let o = execute(&def("fma", "f32", 32)).unwrap();
+        assert_eq!(o.bytes, 32 * 4 * 4, "baca A, B, C + tulis hasil");
     }
 
     #[test]
     fn matmul_shapes() {
         let o = execute(&def("matmul", "f32", 100)).unwrap(); // 10×10
         assert_eq!(o.data.len(), 100);
+        assert_eq!(o.bytes, 100 * 4 * 3, "dua matriks input + hasil");
     }
 
     #[test]

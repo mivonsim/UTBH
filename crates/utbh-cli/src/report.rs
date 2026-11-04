@@ -110,7 +110,8 @@ pub fn render_report(results_dir: &Path) -> Result<String, String> {
     std::fs::create_dir_all(results_dir)
         .map_err(|e| format!("{}: {}", results_dir.display(), e))?;
     let path = results_dir.join(".utbh-report.md");
-    std::fs::write(&path, &out).map_err(|e| format!("{}: {}", path.display(), e))?;
+    utbh_core::write_atomic(&path, out.as_bytes())
+        .map_err(|e| format!("{}: {}", path.display(), e))?;
     eprintln!("report → {}", path.display());
     Ok(out)
 }

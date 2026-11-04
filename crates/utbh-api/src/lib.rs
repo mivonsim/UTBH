@@ -45,7 +45,8 @@ pub trait HardwareApi {
     /// Pin eksekusi ke logical CPU tertentu (noise reduction di VM).
     fn pin_to_cpu(&self, cpu: usize) -> Result<(), String>;
 
-    /// Buffer aligned untuk DMA/NoC workload, jika didukung OS.
+    /// Buffer untuk DMA/NoC workload. Alignment best-effort mengikuti
+    /// allocator — jangan diasumsikan page-aligned.
     fn dma_scratch(&self, size: usize) -> Result<Vec<u8>, String>;
 }
 

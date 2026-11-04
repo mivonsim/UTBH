@@ -207,6 +207,10 @@ Jika FAIL → `utbh-trace` berisi: cycle, instruction, register, memory access,
 interrupt, DMA, GPU command, NoC transaction. Validator berbicara lewat
 hardware/OS interface, tidak memanggil simulator secara langsung.
 
+Catatan 1.0: HardwareApi belum menyediakan data cycle-level, sehingga event
+instruction/register/interrupt/DMA/GPU/NoC ditandai `unavailable` di trace —
+tidak diklaim sebagai data yang sudah diambil.
+
 ### Layer 7 — Result (`utbh-cli` + `utbh-trace`)
 
 Output: `.utbh-result`, `.utbh-trace`, `.utbh-report`.

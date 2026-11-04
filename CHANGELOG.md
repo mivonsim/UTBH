@@ -27,6 +27,12 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/), versi mengikut
 - Profil dengan nama suite kosong ditolak.
 - GFLOPS hanya dihitung untuk operasi floating-point; operasi integer dan
   `compare` tidak lagi dilaporkan sebagai FLOP.
+- Definisi suite menolak `validation.mode = "none"`; setiap test yang
+  dijalankan dari `suites/` wajib punya validasi (AGENTS.md #6).
+- Bandwidth menghitung seluruh byte yang disentuh (operand dibaca + hasil
+  ditulis), bukan hanya operand pertama. `add` = 3×, `fma` = 4×, `matmul` = 3×
+  ukuran elemen.
+- `.utbh-report.md` ditulis atomik seperti artefak hasil/trace.
 - Ukuran kerja benchmark `reduce_sum`/`atomic_add`/`parallel_sum` memakai
   jumlah elemen input, bukan panjang output (=1), sehingga throughput, GFLOPS,
   dan bandwidth tidak lagi hampir nol.
