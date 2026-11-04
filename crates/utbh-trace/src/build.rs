@@ -69,8 +69,9 @@ pub fn from_failure(
         }
     }
 
-    // Event kind sesuai spesifikasi trace; OS mengisi nilai cycle-level
-    // dari interface hardware ketika tersedia.
+    // Event kind sesuai spesifikasi trace. HardwareApi saat ini belum
+    // menyediakan data cycle-level, jadi tandai eksplisit sebagai tidak
+    // tersedia — jangan mengklaim data yang tidak pernah diambil.
     for kind in [
         "instruction",
         "register",
@@ -82,7 +83,7 @@ pub fn from_failure(
         events.push(TraceEvent {
             cycle,
             kind: kind.into(),
-            detail: "captured via hardware/OS interface".into(),
+            detail: "unavailable: HardwareApi belum menyediakan data cycle-level".into(),
         });
     }
 
@@ -173,6 +174,36 @@ mode = "exact"
         let t = from_failure(&def(), &failed("stress", Some(3)), &StubApi, "r").unwrap();
         assert!(!t.events.iter().any(|e| e.kind == "memory_access"));
         assert!(t.events.iter().any(|e| e.kind == "validation"));
+    }
+
+    #[test]
+    fn placeholder_events_do_not_claim_captured_data() {
+        let t = from_failure(&def(), &failed("exact", Some(0)), &StubApi, "r").unwrap();
+        let placeholders: Vec<&TraceEvent> = t
+            .events
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e.kind.as_str(),
+                    "instruction"
+                        | "register"
+                        | "interrupt"
+                        | "dma"
+                        | "gpu_command"
+                        | "noc_transaction"
+                )
+            })
+            .collect();
+        assert!(!placeholders.is_empty());
+        for e in placeholders {
+            assert!(
+                e.detail.contains("unavailable"),
+                "event {} harus jujur: {}",
+                e.kind,
+                e.detail
+            );
+            assert!(!e.detail.contains("captured"));
+        }
     }
 
     #[test]

@@ -56,7 +56,7 @@ impl HardwareApi for MivonHardwareApi {
 
         let memory = MemoryReport {
             capacity_bytes: probe::mem_total_bytes(),
-            channels: 2, // default konservatif; OS dapat menimpa via sysfs
+            channels: 0, // 0 = tidak diketahui; OS dapat menimpa via sysfs
         };
 
         let gpu = probe::gpu_raw().map(|(name, compute_units, feats)| GpuReport {
