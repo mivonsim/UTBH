@@ -44,6 +44,8 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/), versi mengikut
   nonzero; sebelumnya hanya `eprintln!` dan run tetap dianggap sukses.
 - Profil menerima `warmup = 0`, konsisten dengan flag CLI `--warmup 0`.
 - `compare` melaporkan drift throughput dan bandwidth, bukan hanya latency.
+- `pin_to_cpu` kini benar-benar memanggil `sched_setaffinity` pada CPU yang
+  diizinkan OS (cpuset-aware); sebelumnya hanya memvalidasi range.
 - Ukuran kerja benchmark `reduce_sum`/`atomic_add`/`parallel_sum` memakai
   jumlah elemen input, bukan panjang output (=1), sehingga throughput, GFLOPS,
   dan bandwidth tidak lagi hampir nol.

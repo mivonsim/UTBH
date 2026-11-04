@@ -42,7 +42,9 @@ pub trait HardwareApi {
     /// Jumlah logical CPU yang tersedia untuk workload multicore.
     fn cpu_count(&self) -> usize;
 
-    /// Pin eksekusi ke logical CPU tertentu (noise reduction di VM).
+    /// Pin thread pemanggil ke CPU logis ke-`cpu` di dalam set CPU yang
+    /// diizinkan OS (noise reduction di VM). Best-effort: error bila OS
+    /// menolak atau CPU di luar set.
     fn pin_to_cpu(&self, cpu: usize) -> Result<(), String>;
 
     /// Buffer untuk DMA/NoC workload. Alignment best-effort mengikuti

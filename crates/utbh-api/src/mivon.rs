@@ -28,6 +28,24 @@ fn cache_kind(level: &str, ctype: &str) -> String {
     }
 }
 
+/// CPU logis yang diizinkan OS untuk proses ini (cpuset-aware).
+#[cfg(target_os = "linux")]
+fn allowed_cpus() -> Result<Vec<usize>, String> {
+    // SAFETY: set di-zero-init dan diisi kernel; ukuran sesuai tipe kernel.
+    unsafe {
+        let mut set: libc::cpu_set_t = std::mem::zeroed();
+        if libc::sched_getaffinity(0, std::mem::size_of::<libc::cpu_set_t>(), &mut set) != 0 {
+            return Err(format!(
+                "sched_getaffinity: {}",
+                std::io::Error::last_os_error()
+            ));
+        }
+        Ok((0..libc::CPU_SETSIZE as usize)
+            .filter(|i| libc::CPU_ISSET(*i, &set))
+            .collect())
+    }
+}
+
 impl HardwareApi for MivonHardwareApi {
     fn hardware_report(&self) -> HardwareReport {
         let arch = std::env::consts::ARCH.to_string();
@@ -119,14 +137,37 @@ impl HardwareApi for MivonHardwareApi {
             .unwrap_or(1)
     }
 
+    #[cfg(target_os = "linux")]
     fn pin_to_cpu(&self, cpu: usize) -> Result<(), String> {
-        // Best-effort: OS dengan core isolation menegakkan ini.
-        // Environment tanpa dukungan tetap lanjut — bukan fatal.
+        let allowed = allowed_cpus()?;
+        let target = allowed
+            .get(cpu)
+            .copied()
+            .ok_or_else(|| format!("cpu {} di luar jumlah cpu {}", cpu, allowed.len()))?;
+        // SAFETY: cpu_set_t di-zero-init, hanya satu bit di-set, dan ukuran
+        // yang diberikan sesuai dengan tipe yang dipakai kernel.
+        unsafe {
+            let mut set: libc::cpu_set_t = std::mem::zeroed();
+            libc::CPU_ZERO(&mut set);
+            libc::CPU_SET(target, &mut set);
+            if libc::sched_setaffinity(0, std::mem::size_of::<libc::cpu_set_t>(), &set) != 0 {
+                return Err(format!(
+                    "sched_setaffinity cpu {}: {}",
+                    target,
+                    std::io::Error::last_os_error()
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn pin_to_cpu(&self, cpu: usize) -> Result<(), String> {
         let n = self.cpu_count();
         if cpu >= n {
             return Err(format!("cpu {} di luar jumlah cpu {}", cpu, n));
         }
-        Ok(())
+        Err("pin_to_cpu hanya didukung di Linux".into())
     }
 
     fn dma_scratch(&self, size: usize) -> Result<Vec<u8>, String> {
@@ -176,6 +217,24 @@ mod tests {
         let n = api.cpu_count();
         assert!(api.pin_to_cpu(n + 100).is_err());
         assert!(api.pin_to_cpu(0).is_ok());
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn pin_to_cpu_applies_affinity() {
+        let allowed = allowed_cpus().unwrap();
+        assert!(!allowed.is_empty(), "set CPU yang diizinkan kosong");
+
+        let api = MivonHardwareApi::new();
+        api.pin_to_cpu(0).unwrap();
+
+        // SAFETY: sched_getcpu tidak punya prasyarat memori.
+        let current = unsafe { libc::sched_getcpu() };
+        assert!(current >= 0, "sched_getcpu gagal");
+        assert_eq!(
+            current as usize, allowed[0],
+            "thread harus berjalan di CPU pertama yang diizinkan"
+        );
     }
 
     #[test]

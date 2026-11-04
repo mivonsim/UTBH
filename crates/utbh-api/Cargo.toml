@@ -7,3 +7,4 @@ description = "UTBH Layer 1 — Hardware API, satu-satunya jendela UTBH ke hardw
 
 [dependencies]
 utbh-core = { workspace = true }
+libc = { workspace = true }
