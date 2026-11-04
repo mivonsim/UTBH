@@ -11,8 +11,10 @@
 //! - [`hardware`] — laporan hardware (diisi Layer 1/2)
 //! - [`loader`] — loader test package (data-driven)
 //! - [`util`] — run id + timestamp
+//! - [`fs`] — penulisan artefak atomik
 
 pub mod data;
+pub mod fs;
 pub mod hardware;
 pub mod loader;
 pub mod outcome;
@@ -22,6 +24,7 @@ pub mod testdef;
 pub mod util;
 
 pub use data::{gen_data, gen_f32, gen_i64, gen_u64, inputs, Data, Inputs};
+pub use fs::write_atomic;
 pub use hardware::{
     CacheLevel, CpuReport, GpuReport, HardwareReport, InterconnectReport, MemoryReport,
 };

@@ -25,6 +25,9 @@ pub struct Row {
 pub struct Comparison {
     pub run_a: String,
     pub run_b: String,
+    /// Schema versi masing-masing run — beda versi = tidak sebanding.
+    pub schema_a: u32,
+    pub schema_b: u32,
     pub rows: Vec<Row>,
     /// Test yang PASS di A tapi FAIL di B (regresi).
     pub regressions: Vec<String>,
@@ -103,6 +106,8 @@ pub fn compare(a: &RunResult, b: &RunResult) -> Comparison {
     Comparison {
         run_a: a.run_id.clone(),
         run_b: b.run_id.clone(),
+        schema_a: a.schema_version,
+        schema_b: b.schema_version,
         rows,
         regressions,
         recoveries,
@@ -114,6 +119,12 @@ pub fn compare(a: &RunResult, b: &RunResult) -> Comparison {
 /// Render tabel perbandingan untuk stdout / report.
 pub fn render(c: &Comparison) -> String {
     let mut out = format!("UTBH Compare\n  A = {}\n  B = {}\n\n", c.run_a, c.run_b);
+    if c.schema_a != c.schema_b {
+        out.push_str(&format!(
+            "PERINGATAN: schema_version berbeda ({} vs {}) — hasil tidak sebanding.\n\n",
+            c.schema_a, c.schema_b
+        ));
+    }
     out.push_str(&format!(
         "{:<28} {:<14} {:<7} {:<7} {:>14} {:>14} {:>10}\n",
         "TEST", "CATEGORY", "A", "B", "LAT_A", "LAT_B", "DELTA"
@@ -233,6 +244,16 @@ mod tests {
         let text = render(&c);
         assert!(text.contains("REGRESSIONS"));
         assert!(text.contains("-50.0%"));
+    }
+
+    #[test]
+    fn schema_mismatch_is_reported() {
+        let a = run("old", vec![]);
+        let mut b = run("new", vec![]);
+        b.schema_version = 2;
+        let c = compare(&a, &b);
+        assert_ne!(c.schema_a, c.schema_b);
+        assert!(render(&c).contains("schema_version berbeda"));
     }
 
     #[test]

@@ -44,7 +44,7 @@ pub fn save(trace: &Trace, dir: &Path) -> std::io::Result<PathBuf> {
     let path = dir.join(filename(trace));
     let json = serde_json::to_vec_pretty(trace)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-    std::fs::write(&path, json)?;
+    utbh_core::write_atomic(&path, &json)?;
     Ok(path)
 }
 

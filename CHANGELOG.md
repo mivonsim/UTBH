@@ -4,6 +4,24 @@ Semua perubahan penting pada UTBH dicatat di file ini.
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/), versi mengikuti
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Validator JSON Schema rekursif di test untuk hardware, result, dan test
+  definition (field hilang/ekstra, enum, minimum, `$ref`).
+
+### Changed
+
+- `utbh compare` menolak membandingkan hasil dengan `schema_version` berbeda.
+- Nama test duplikat antar file/suite kini error, bukan dibuang diam-diam.
+
+### Fixed
+
+- Hasil dan trace ditulis atomik (tidak ada JSON setengah jadi).
+- `utbh report` pada direktori hasil yang belum ada memberi pesan jelas.
+- `RunResult::load` menolak hasil dari schema yang lebih baru.
+
 ## [1.0.0] — 2026-11-04
 
 Rilis stabil pertama: harness guest-side untuk correctness, validation,

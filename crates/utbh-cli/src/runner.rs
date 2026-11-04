@@ -296,7 +296,10 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
             };
             let comparison = crate::compare::compare(&run_a, &run_b);
             print!("{}", crate::compare::render(&comparison));
-            if comparison.regressions.is_empty() {
+            if comparison.schema_a != comparison.schema_b {
+                // Format berbeda: perbandingan tidak bermakna, jangan lulus diam-diam.
+                ExitCode::FAILURE
+            } else if comparison.regressions.is_empty() {
                 ExitCode::SUCCESS
             } else {
                 ExitCode::FAILURE
@@ -329,7 +332,24 @@ fn load_multi(root: &Path, suites: &[String]) -> Result<Vec<TestDef>, String> {
         all.extend(load(root, s)?);
     }
     all.sort_by(|a, b| a.test.name.cmp(&b.test.name));
-    all.dedup_by(|a, b| a.test.name == b.test.name);
+
+    // Nama duplikat tidak boleh dibuang diam-diam: hasil run/compare akan
+    // ambigu. Laporkan sebagai error konfigurasi.
+    let mut seen = std::collections::HashSet::new();
+    let mut duplicates: Vec<String> = all
+        .iter()
+        .filter(|d| !seen.insert(d.test.name.clone()))
+        .map(|d| d.test.name.clone())
+        .collect();
+    duplicates.sort();
+    duplicates.dedup();
+    if !duplicates.is_empty() {
+        return Err(format!(
+            "nama test duplikat antar file/suite: {}",
+            duplicates.join(", ")
+        ));
+    }
+
     if all.is_empty() {
         return Err(format!("tidak ada test dari suite {:?}", suites));
     }

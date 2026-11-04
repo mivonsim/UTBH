@@ -6,8 +6,16 @@ use utbh_core::{RunResult, Status, SCHEMA_VERSION};
 /// Render `.utbh-report` (markdown) dari semua run di results/.
 pub fn render_report(results_dir: &Path) -> Result<String, String> {
     let mut runs = Vec::new();
-    let entries =
-        std::fs::read_dir(results_dir).map_err(|e| format!("{}: {}", results_dir.display(), e))?;
+    let entries = match std::fs::read_dir(results_dir) {
+        Ok(entries) => entries,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            return Err(format!(
+                "tidak ada hasil di {} (jalankan utbh test/run dulu)",
+                results_dir.display()
+            ));
+        }
+        Err(e) => return Err(format!("{}: {}", results_dir.display(), e)),
+    };
     for entry in entries.flatten() {
         let p = entry.path();
         if p.extension().and_then(|e| e.to_str()) == Some("json")
@@ -84,4 +92,17 @@ pub fn render_report(results_dir: &Path) -> Result<String, String> {
     std::fs::write(&path, &out).map_err(|e| format!("{}: {}", path.display(), e))?;
     eprintln!("report → {}", path.display());
     Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn missing_results_dir_is_reported_clearly() {
+        let dir = std::env::temp_dir().join(format!("utbh-report-none-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let err = render_report(&dir).unwrap_err();
+        assert!(err.contains("tidak ada hasil"), "err = {}", err);
+    }
 }

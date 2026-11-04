@@ -61,13 +61,23 @@ impl RunResult {
         let path = dir.join(format!("{}.utbh-result.json", self.run_id));
         let json = serde_json::to_vec_pretty(self)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-        std::fs::write(&path, json)?;
+        crate::write_atomic(&path, &json)?;
         Ok(path)
     }
 
     pub fn load(path: &Path) -> Result<RunResult, String> {
         let bytes = std::fs::read(path).map_err(|e| format!("{}: {}", path.display(), e))?;
-        serde_json::from_slice(&bytes).map_err(|e| format!("{}: {}", path.display(), e))
+        let run: RunResult =
+            serde_json::from_slice(&bytes).map_err(|e| format!("{}: {}", path.display(), e))?;
+        if run.schema_version > SCHEMA_VERSION {
+            return Err(format!(
+                "{}: schema_version {} lebih baru dari yang didukung UTBH ({})",
+                path.display(),
+                run.schema_version,
+                SCHEMA_VERSION
+            ));
+        }
+        Ok(run)
     }
 }
 
@@ -94,6 +104,22 @@ mod tests {
         let back = RunResult::load(&path).unwrap();
         assert_eq!(back.run_id, "run-1");
         assert_eq!(back.schema_version, SCHEMA_VERSION);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn rejects_newer_schema_version() {
+        let dir = std::env::temp_dir().join(format!("utbh-future-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let mut value = serde_json::to_value(sample()).unwrap();
+        value["schema_version"] = 99.into();
+        let path = dir.join("future.utbh-result.json");
+        std::fs::write(&path, serde_json::to_vec(&value).unwrap()).unwrap();
+
+        let err = RunResult::load(&path).unwrap_err();
+        assert!(err.contains("schema_version"), "err = {}", err);
         let _ = std::fs::remove_dir_all(&dir);
     }
 

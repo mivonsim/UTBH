@@ -252,6 +252,21 @@ fn cli_stress_reports_no_failure() {
 }
 
 #[test]
+fn cli_duplicate_test_names_are_rejected() {
+    let f = Fixture::new("duplicate");
+    fs::create_dir_all(f.suites().join("extra")).unwrap();
+    fs::write(f.suites().join("extra/dup.utbh"), TINY).unwrap();
+
+    let output = f.run(&["test", "universal"]);
+    assert!(!output.status.success(), "duplikat harus ditolak");
+    assert!(
+        stderr(&output).contains("duplikat"),
+        "stderr={}",
+        stderr(&output)
+    );
+}
+
+#[test]
 fn cli_rejects_invalid_test_definition() {
     let f = Fixture::new("invalid");
     let invalid = TINY.replace("mode = \"exact\"", "mode = \"approximate\"");
