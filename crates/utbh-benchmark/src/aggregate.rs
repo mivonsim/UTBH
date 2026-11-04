@@ -40,7 +40,6 @@ pub fn aggregate(def: &TestDef, samples: &[Sample]) -> Vec<Metric> {
     let elements = samples[0].elements as f64;
     let bytes = samples[0].bytes as f64;
     let flops = samples[0].flops as f64;
-    let sec = (avg_ns / 1e9).max(f64::EPSILON);
 
     let mut metrics = vec![
         Metric {
@@ -54,28 +53,39 @@ pub fn aggregate(def: &TestDef, samples: &[Sample]) -> Vec<Metric> {
             unit: "ns".into(),
         },
         Metric {
-            name: "throughput".into(),
-            value: elements / sec,
-            unit: "elem/s".into(),
-        },
-        Metric {
-            name: "bandwidth".into(),
-            value: bytes / sec / 1e9,
-            unit: "GB/s".into(),
-        },
-        Metric {
             name: "cycles".into(),
             value: avg_cycles,
             unit: "cycles".into(),
         },
     ];
 
-    if flops > 0.0 {
-        metrics.push(Metric {
-            name: "gflops".into(),
-            value: flops / sec / 1e9,
-            unit: "GFLOPS".into(),
-        });
+    // Durasi 0 = di bawah resolusi timer. Rate tidak bisa dihitung tanpa
+    // membagi nol; jangan fabrikasi angka raksasa dari EPSILON.
+    if avg_ns > 0.0 {
+        let sec = avg_ns / 1e9;
+        metrics.insert(
+            2,
+            Metric {
+                name: "throughput".into(),
+                value: elements / sec,
+                unit: "elem/s".into(),
+            },
+        );
+        metrics.insert(
+            3,
+            Metric {
+                name: "bandwidth".into(),
+                value: bytes / sec / 1e9,
+                unit: "GB/s".into(),
+            },
+        );
+        if flops > 0.0 {
+            metrics.push(Metric {
+                name: "gflops".into(),
+                value: flops / sec / 1e9,
+                unit: "GFLOPS".into(),
+            });
+        }
     }
 
     let wanted = &def.benchmark.metrics;
@@ -208,6 +218,39 @@ mode = "exact"
         )
         .unwrap();
         assert!(aggregate(&d, &[]).is_empty());
+    }
+
+    #[test]
+    fn zero_duration_does_not_fabricate_rates() {
+        let d = toml::from_str::<TestDef>(
+            r#"
+[test]
+name = "x"
+category = "cpu"
+[input]
+elements = 8
+type = "f32"
+[operation]
+op = "add"
+[validation]
+mode = "exact"
+"#,
+        )
+        .unwrap();
+        let samples = vec![Sample {
+            ns: 0,
+            cycles: 0,
+            elements: 8,
+            bytes: 96,
+            flops: 8,
+        }];
+        let m = aggregate(&d, &samples);
+        let names: Vec<&str> = m.iter().map(|m| m.name.as_str()).collect();
+        assert_eq!(
+            names,
+            vec!["latency", "latency_min", "cycles"],
+            "durasi nol tidak boleh menghasilkan rate"
+        );
     }
 
     #[test]

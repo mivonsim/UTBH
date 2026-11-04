@@ -1,0 +1,19 @@
+[test]
+name = "int64_mul"
+category = "cpu.integer"
+description = "Perkalian dua vektor i64 termasuk nilai negatif — sign handling + wrapping"
+
+[input]
+elements = 1048576
+type = "i64"
+seed = 46
+
+[operation]
+op = "mul"
+
+[validation]
+mode = "exact"
+
+[benchmark]
+metrics = ["latency", "throughput", "bandwidth"]
+iterations = 10

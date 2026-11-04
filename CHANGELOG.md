@@ -37,6 +37,9 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/), versi mengikut
   reference tidak lagi masuk region pengukuran.
 - Field `Discovery.mem_bandwidth_gbs` dihapus karena selalu `None`; bandwidth
   memori diukur benchmark (Layer 5), bukan diklaim discovery.
+- Benchmark tidak lagi melaporkan throughput/bandwidth/GFLOPS saat durasi
+  sampel nol (di bawah resolusi timer); hanya latency/cycles yang dilaporkan.
+- Suite baru `int64_mul` menutup coverage dtype i64 (nilai negatif + wrapping).
 - Ukuran kerja benchmark `reduce_sum`/`atomic_add`/`parallel_sum` memakai
   jumlah elemen input, bukan panjang output (=1), sehingga throughput, GFLOPS,
   dan bandwidth tidak lagi hampir nol.
