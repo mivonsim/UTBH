@@ -42,6 +42,8 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/), versi mengikut
 - Suite baru `int64_mul` menutup coverage dtype i64 (nilai negatif + wrapping).
 - Kegagalan menulis `.utbh-result.json` atau trace kini membuat perintah exit
   nonzero; sebelumnya hanya `eprintln!` dan run tetap dianggap sukses.
+- Profil menerima `warmup = 0`, konsisten dengan flag CLI `--warmup 0`.
+- `compare` melaporkan drift throughput dan bandwidth, bukan hanya latency.
 - Ukuran kerja benchmark `reduce_sum`/`atomic_add`/`parallel_sum` memakai
   jumlah elemen input, bukan panjang output (=1), sehingga throughput, GFLOPS,
   dan bandwidth tidak lagi hampir nol.

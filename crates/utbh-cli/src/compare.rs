@@ -19,6 +19,10 @@ pub struct Row {
     pub status_b: Status,
     pub latency_a: Option<f64>,
     pub latency_b: Option<f64>,
+    pub throughput_a: Option<f64>,
+    pub throughput_b: Option<f64>,
+    pub bandwidth_a: Option<f64>,
+    pub bandwidth_b: Option<f64>,
 }
 
 /// Hasil perbandingan dua run.
@@ -39,12 +43,14 @@ pub struct Comparison {
 }
 
 impl Comparison {
-    /// Delta latensi rata-rata (b/a - 1), dalam persen. `None` bila tak ada pasangan.
-    pub fn avg_latency_delta_pct(&self) -> Option<f64> {
+    fn avg_delta(&self, pick: impl Fn(&Row) -> (Option<f64>, Option<f64>)) -> Option<f64> {
         let pairs: Vec<(f64, f64)> = self
             .rows
             .iter()
-            .filter_map(|r| Some((r.latency_a?, r.latency_b?)))
+            .filter_map(|r| {
+                let (a, b) = pick(r);
+                Some((a?, b?))
+            })
             .filter(|(a, b)| *a > 0.0 && b.is_finite())
             .collect();
         if pairs.is_empty() {
@@ -53,13 +59,28 @@ impl Comparison {
         let sum: f64 = pairs.iter().map(|(a, b)| (b / a - 1.0) * 100.0).sum();
         Some(sum / pairs.len() as f64)
     }
+
+    /// Delta latensi rata-rata (b/a - 1), dalam persen. `None` bila tak ada pasangan.
+    pub fn avg_latency_delta_pct(&self) -> Option<f64> {
+        self.avg_delta(|r| (r.latency_a, r.latency_b))
+    }
+
+    /// Delta throughput rata-rata; positif = kandidat lebih cepat.
+    pub fn avg_throughput_delta_pct(&self) -> Option<f64> {
+        self.avg_delta(|r| (r.throughput_a, r.throughput_b))
+    }
+
+    /// Delta bandwidth rata-rata; positif = kandidat lebih cepat.
+    pub fn avg_bandwidth_delta_pct(&self) -> Option<f64> {
+        self.avg_delta(|r| (r.bandwidth_a, r.bandwidth_b))
+    }
 }
 
-fn metric_ns(r: &RunResult, test: &str) -> Option<f64> {
+fn metric_value(r: &RunResult, test: &str, metric: &str) -> Option<f64> {
     r.outcomes
         .iter()
         .find(|o| o.name == test)?
-        .metric("latency")
+        .metric(metric)
         .map(|m| m.value)
 }
 
@@ -88,8 +109,12 @@ pub fn compare(a: &RunResult, b: &RunResult) -> Comparison {
                     category: oa.category.clone(),
                     status_a: oa.status,
                     status_b: sb,
-                    latency_a: metric_ns(a, &oa.name),
-                    latency_b: metric_ns(b, &oa.name),
+                    latency_a: metric_value(a, &oa.name, "latency"),
+                    latency_b: metric_value(b, &oa.name, "latency"),
+                    throughput_a: metric_value(a, &oa.name, "throughput"),
+                    throughput_b: metric_value(b, &oa.name, "throughput"),
+                    bandwidth_a: metric_value(a, &oa.name, "bandwidth"),
+                    bandwidth_b: metric_value(b, &oa.name, "bandwidth"),
                 });
             }
             None => only_a.push(oa.name.clone()),
@@ -159,6 +184,18 @@ pub fn render(c: &Comparison) -> String {
     out.push('\n');
     if let Some(d) = c.avg_latency_delta_pct() {
         out.push_str(&format!("Avg latency delta (B vs A): {:+.1}%\n", d));
+    }
+    if let Some(d) = c.avg_throughput_delta_pct() {
+        out.push_str(&format!(
+            "Avg throughput delta (B vs A): {:+.1}% (positif = lebih cepat)\n",
+            d
+        ));
+    }
+    if let Some(d) = c.avg_bandwidth_delta_pct() {
+        out.push_str(&format!(
+            "Avg bandwidth delta (B vs A): {:+.1}% (positif = lebih cepat)\n",
+            d
+        ));
     }
     if !c.regressions.is_empty() {
         out.push_str(&format!(
@@ -264,6 +301,28 @@ mod tests {
         assert_eq!(c.only_a, vec!["x"]);
         assert_eq!(c.only_b, vec!["y"]);
         assert_eq!(c.avg_latency_delta_pct(), None);
+    }
+
+    #[test]
+    fn reports_metric_drift_not_only_latency() {
+        let metric = |name: &str, value: f64| Metric {
+            name: name.into(),
+            value,
+            unit: "x".into(),
+        };
+        let mut a = run("vm", vec![outcome("vadd", Status::Pass, Some(1.0))]);
+        a.outcomes[0].metrics.push(metric("throughput", 100.0));
+        a.outcomes[0].metrics.push(metric("bandwidth", 10.0));
+        let mut b = run("asic", vec![outcome("vadd", Status::Pass, Some(1.0))]);
+        b.outcomes[0].metrics.push(metric("throughput", 50.0));
+        b.outcomes[0].metrics.push(metric("bandwidth", 5.0));
+
+        let c = compare(&a, &b);
+        assert_eq!(c.avg_throughput_delta_pct(), Some(-50.0));
+        assert_eq!(c.avg_bandwidth_delta_pct(), Some(-50.0));
+        let text = render(&c);
+        assert!(text.contains("Avg throughput delta"), "{}", text);
+        assert!(text.contains("Avg bandwidth delta"), "{}", text);
     }
 
     #[test]

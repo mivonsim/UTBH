@@ -46,9 +46,6 @@ impl Profile {
         if let Some(0) = self.iterations {
             return Err(format!("profil '{}': iterations harus > 0", self.name));
         }
-        if let Some(0) = self.warmup {
-            return Err(format!("profil '{}': warmup harus > 0", self.name));
-        }
         if let Some(0) = self.fuzz_iterations {
             return Err(format!("profil '{}': fuzz_iterations harus > 0", self.name));
         }
@@ -105,6 +102,19 @@ mod tests {
             }
         }
         assert!(found >= 3, "minimal quick/full/ci, dapat {}", found);
+    }
+
+    #[test]
+    fn allows_zero_warmup() {
+        let p = Profile {
+            name: "x".into(),
+            warmup: Some(0),
+            ..Default::default()
+        };
+        assert!(
+            p.validate().is_ok(),
+            "warmup 0 sah dan dipakai test integrasi CLI"
+        );
     }
 
     #[test]
