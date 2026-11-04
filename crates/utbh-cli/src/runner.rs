@@ -57,8 +57,14 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                 Ok(defs) => {
                     let outcomes = utbh_test::run_all(&defs);
                     print_test_results(&outcomes);
-                    save_traces(&defs, &outcomes, &api, &cli.results, &run_id);
-                    save_run(&cli.results, &run_id, "test", &label, &api, &outcomes, None);
+                    if let Err(e) = save_traces(&defs, &outcomes, &api, &cli.results, &run_id) {
+                        return fail(&e);
+                    }
+                    if let Err(e) =
+                        save_run(&cli.results, &run_id, "test", &label, &api, &outcomes, None)
+                    {
+                        return fail(&e);
+                    }
                     finish(&outcomes)
                 }
                 Err(e) => fail(&e),
@@ -90,8 +96,10 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                         outcomes.push(o);
                     }
                     print_test_results(&outcomes);
-                    save_traces(&defs, &outcomes, &api, &cli.results, &run_id);
-                    save_run(
+                    if let Err(e) = save_traces(&defs, &outcomes, &api, &cli.results, &run_id) {
+                        return fail(&e);
+                    }
+                    if let Err(e) = save_run(
                         &cli.results,
                         &run_id,
                         "benchmark",
@@ -99,7 +107,9 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                         &api,
                         &outcomes,
                         None,
-                    );
+                    ) {
+                        return fail(&e);
+                    }
                     finish(&outcomes)
                 }
                 Err(e) => fail(&e),
@@ -130,8 +140,14 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                         outcomes.push(o);
                     }
                     print_test_results(&outcomes);
-                    save_traces(&defs, &outcomes, &api, &cli.results, &run_id);
-                    save_run(&cli.results, &run_id, "run", &label, &api, &outcomes, None);
+                    if let Err(e) = save_traces(&defs, &outcomes, &api, &cli.results, &run_id) {
+                        return fail(&e);
+                    }
+                    if let Err(e) =
+                        save_run(&cli.results, &run_id, "run", &label, &api, &outcomes, None)
+                    {
+                        return fail(&e);
+                    }
                     finish(&outcomes)
                 }
                 Err(e) => fail(&e),
@@ -195,17 +211,16 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
             );
 
             // Setiap kasus FAIL → trace.
-            let outcomes: Vec<TestOutcome> = all_cases
-                .iter()
-                .filter(|c| !c.passed)
-                .map(|c| {
-                    let o = utbh_test::run(&c.def);
-                    if let Some(t) = utbh_trace::from_failure(&c.def, &o, &api, &run_id) {
-                        let _ = utbh_trace::save(&t, &cli.results);
+            let mut outcomes: Vec<TestOutcome> = Vec::new();
+            for c in all_cases.iter().filter(|c| !c.passed) {
+                let o = utbh_test::run(&c.def);
+                if let Some(t) = utbh_trace::from_failure(&c.def, &o, &api, &run_id) {
+                    if let Err(e) = utbh_trace::save(&t, &cli.results) {
+                        return fail(&format!("gagal menulis trace {}: {}", t.test, e));
                     }
-                    o
-                })
-                .collect();
+                }
+                outcomes.push(o);
+            }
 
             let summary = utbh_core::FuzzSummary {
                 base_seed: seed,
@@ -213,7 +228,7 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                 passed,
                 failed,
             };
-            save_run(
+            if let Err(e) = save_run(
                 &cli.results,
                 &run_id,
                 "fuzz",
@@ -221,7 +236,9 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                 &api,
                 &outcomes,
                 Some(summary),
-            );
+            ) {
+                return fail(&e);
+            }
             if failed > 0 {
                 ExitCode::FAILURE
             } else {
@@ -263,7 +280,9 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                     let outcomes: Vec<TestOutcome> =
                         reports.iter().map(utbh_stress::to_outcome).collect();
                     // FAIL di stress juga harus punya trace (Layer 7).
-                    save_traces(&defs, &outcomes, &api, &cli.results, &run_id);
+                    if let Err(e) = save_traces(&defs, &outcomes, &api, &cli.results, &run_id) {
+                        return fail(&e);
+                    }
                     print_test_results(&outcomes);
                     for r in &reports {
                         if let Some(first) = r.first_fail_at {
@@ -280,7 +299,7 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                             );
                         }
                     }
-                    save_run(
+                    if let Err(e) = save_run(
                         &cli.results,
                         &run_id,
                         "stress",
@@ -288,7 +307,9 @@ pub fn execute_cli(cli: Cli) -> ExitCode {
                         &api,
                         &outcomes,
                         None,
-                    );
+                    ) {
+                        return fail(&e);
+                    }
                     finish(&outcomes)
                 }
                 Err(e) => fail(&e),
@@ -389,15 +410,18 @@ fn save_traces(
     api: &dyn HardwareApi,
     results_dir: &Path,
     run_id: &str,
-) {
+) -> Result<(), String> {
     for (def, outcome) in defs.iter().zip(outcomes.iter()) {
         if let Some(t) = utbh_trace::from_failure(def, outcome, api, run_id) {
             match utbh_trace::save(&t, results_dir) {
                 Ok(p) => println!("trace → {}", p.display()),
-                Err(e) => eprintln!("gagal menulis trace {}: {}", t.test, e),
+                Err(e) => {
+                    return Err(format!("gagal menulis trace {}: {}", t.test, e));
+                }
             }
         }
     }
+    Ok(())
 }
 
 fn save_run(
@@ -408,7 +432,7 @@ fn save_run(
     api: &dyn HardwareApi,
     outcomes: &[TestOutcome],
     fuzz: Option<utbh_core::FuzzSummary>,
-) {
+) -> Result<(), String> {
     let discovery = discover(api);
     let run = RunResult {
         schema_version: SCHEMA_VERSION,
@@ -421,7 +445,10 @@ fn save_run(
         fuzz,
     };
     match run.save(results_dir) {
-        Ok(p) => println!("result → {}", p.display()),
-        Err(e) => eprintln!("gagal menulis hasil: {}", e),
+        Ok(p) => {
+            println!("result → {}", p.display());
+            Ok(())
+        }
+        Err(e) => Err(format!("gagal menulis hasil: {}", e)),
     }
 }

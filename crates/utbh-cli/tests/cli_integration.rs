@@ -252,6 +252,24 @@ fn cli_stress_reports_no_failure() {
 }
 
 #[test]
+fn cli_fails_when_result_cannot_be_written() {
+    let f = Fixture::new("unwritable");
+    // results/ sebagai file biasa → create_dir_all gagal.
+    fs::write(f.results(), b"not a directory").unwrap();
+
+    let output = f.run(&["test", "tiny"]);
+    assert!(
+        !output.status.success(),
+        "artefak gagal ditulis tidak boleh exit 0"
+    );
+    assert!(
+        stderr(&output).contains("gagal menulis hasil"),
+        "stderr={}",
+        stderr(&output)
+    );
+}
+
+#[test]
 fn cli_rejects_zero_iterations_and_window() {
     let f = Fixture::new("zero");
     let cases: [&[&str]; 4] = [

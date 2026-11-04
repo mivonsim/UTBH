@@ -40,6 +40,8 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/), versi mengikut
 - Benchmark tidak lagi melaporkan throughput/bandwidth/GFLOPS saat durasi
   sampel nol (di bawah resolusi timer); hanya latency/cycles yang dilaporkan.
 - Suite baru `int64_mul` menutup coverage dtype i64 (nilai negatif + wrapping).
+- Kegagalan menulis `.utbh-result.json` atau trace kini membuat perintah exit
+  nonzero; sebelumnya hanya `eprintln!` dan run tetap dianggap sukses.
 - Ukuran kerja benchmark `reduce_sum`/`atomic_add`/`parallel_sum` memakai
   jumlah elemen input, bukan panjang output (=1), sehingga throughput, GFLOPS,
   dan bandwidth tidak lagi hampir nol.
