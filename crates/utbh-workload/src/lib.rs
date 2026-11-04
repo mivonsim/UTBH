@@ -13,5 +13,5 @@ pub mod exec;
 pub mod exec_parallel;
 pub mod op;
 
-pub use exec::{execute, WorkloadOutput};
+pub use exec::{execute, execute_inputs, WorkloadOutput};
 pub use op::Op;

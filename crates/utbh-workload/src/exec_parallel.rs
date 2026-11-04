@@ -25,8 +25,8 @@ fn threads() -> usize {
 
 /// `atomic_add` — semua thread menambah shared counter atomik.
 /// Output: satu elemen = total wrapping.
-pub fn atomic_add(def: &TestDef, a: Data) -> Result<Data, String> {
-    let Data::U64(v) = &a else {
+pub fn atomic_add(def: &TestDef, a: &Data) -> Result<Data, String> {
+    let Data::U64(v) = a else {
         return Err("atomic_add hanya mendukung u64".into());
     };
     let total = AtomicU64::new(0);
@@ -51,23 +51,23 @@ pub fn atomic_add(def: &TestDef, a: Data) -> Result<Data, String> {
 
 /// `parallel_sum` — partial sum per thread, digabung jadi satu.
 /// u64/i64: wrapping asosiatif → identik serial. f32: urutan beda → approx.
-pub fn parallel_sum(a: Data) -> Result<Data, String> {
+pub fn parallel_sum(a: &Data) -> Result<Data, String> {
     let n = threads();
     match a {
         Data::U64(v) => {
-            let partials = sum_chunks(&v, n, |p| p.iter().fold(0u64, |s, x| s.wrapping_add(*x)));
+            let partials = sum_chunks(v, n, |p| p.iter().fold(0u64, |s, x| s.wrapping_add(*x)));
             Ok(Data::U64(vec![partials
                 .iter()
                 .fold(0u64, |s, x| s.wrapping_add(*x))]))
         }
         Data::I64(v) => {
-            let partials = sum_chunks(&v, n, |p| p.iter().fold(0i64, |s, x| s.wrapping_add(*x)));
+            let partials = sum_chunks(v, n, |p| p.iter().fold(0i64, |s, x| s.wrapping_add(*x)));
             Ok(Data::I64(vec![partials
                 .iter()
                 .fold(0i64, |s, x| s.wrapping_add(*x))]))
         }
         Data::F32(v) => {
-            let partials = sum_chunks(&v, n, |p| p.iter().fold(0f32, |s, x| s + x));
+            let partials = sum_chunks(v, n, |p| p.iter().fold(0f32, |s, x| s + x));
             Ok(Data::F32(vec![partials.iter().fold(0f32, |s, x| s + x)]))
         }
     }
@@ -127,7 +127,7 @@ mode = "exact"
         let a = utbh_core::inputs(&def).a;
         let Data::U64(v) = &a else { panic!() };
         let expected = v.iter().fold(0u64, |s, x| s.wrapping_add(*x));
-        let out = atomic_add(&def, a).unwrap();
+        let out = atomic_add(&def, &a).unwrap();
         assert_eq!(out, Data::U64(vec![expected]));
     }
 
@@ -137,7 +137,7 @@ mode = "exact"
         let a = utbh_core::inputs(&def).a;
         let Data::U64(v) = &a else { panic!() };
         let expected = v.iter().fold(0u64, |s, x| s.wrapping_add(*x));
-        assert_eq!(parallel_sum(a).unwrap(), Data::U64(vec![expected]));
+        assert_eq!(parallel_sum(&a).unwrap(), Data::U64(vec![expected]));
     }
 
     #[test]
@@ -160,7 +160,7 @@ mode = "approx"
         let a = utbh_core::inputs(&def).a;
         let Data::F32(v) = &a else { panic!() };
         let serial: f32 = v.iter().sum();
-        let Data::F32(out) = parallel_sum(a).unwrap() else {
+        let Data::F32(out) = parallel_sum(&a).unwrap() else {
             panic!()
         };
         let rel = ((out[0] - serial) / serial.abs().max(1e-12)).abs();
@@ -185,7 +185,7 @@ mode = "exact"
         )
         .unwrap();
         let a = utbh_core::inputs(&def).a;
-        assert!(atomic_add(&def, a).is_err());
+        assert!(atomic_add(&def, &a).is_err());
     }
 
     #[test]

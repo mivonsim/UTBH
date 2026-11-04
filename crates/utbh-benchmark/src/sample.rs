@@ -1,8 +1,8 @@
 //! Pengukuran satu iterasi benchmark via [`HardwareApi`].
 
 use utbh_api::HardwareApi;
-use utbh_core::TestDef;
-use utbh_workload::execute;
+use utbh_core::{inputs, TestDef};
+use utbh_workload::execute_inputs;
 
 /// Konfigurasi pengukuran.
 pub struct BenchConfig {
@@ -38,9 +38,13 @@ pub struct Sample {
 pub fn run(def: &TestDef, api: &dyn HardwareApi, cfg: &BenchConfig) -> Vec<utbh_core::Metric> {
     let iterations = cfg.iterations.unwrap_or(def.benchmark.iterations).max(1);
 
+    // Input deterministik disiapkan sekali, di luar region pengukuran. Kalau
+    // digenerate per iterasi, latency didominasi RNG dan bukan workload.
+    let prepared = inputs(def);
+
     // Warmup: buang hasil, hanya agar cache/pipeline stabil.
     for _ in 0..cfg.warmup {
-        if execute(def).is_err() {
+        if execute_inputs(def, &prepared).is_err() {
             return Vec::new();
         }
     }
@@ -49,7 +53,7 @@ pub fn run(def: &TestDef, api: &dyn HardwareApi, cfg: &BenchConfig) -> Vec<utbh_
     for _ in 0..iterations {
         let c0 = api.cycles();
         let t0 = api.timer_ns();
-        let Ok(out) = execute(def) else {
+        let Ok(out) = execute_inputs(def, &prepared) else {
             return Vec::new();
         };
         let t1 = api.timer_ns();

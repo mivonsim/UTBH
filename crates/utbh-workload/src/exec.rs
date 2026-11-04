@@ -4,7 +4,7 @@
 //! sama, input identik antara workload dan reference.
 
 use crate::op::Op;
-use utbh_core::{inputs, Data, TestDef};
+use utbh_core::{inputs, Data, Inputs, TestDef};
 
 /// Hasil eksekusi workload.
 pub struct WorkloadOutput {
@@ -16,31 +16,34 @@ pub struct WorkloadOutput {
 }
 
 /// Eksekusi workload sesuai `[operation].op` pada test definition.
+///
+/// Input digenerate deterministik di sini. Untuk benchmark, pakai
+/// [`execute_inputs`] dengan input yang disiapkan di luar region pengukuran.
 pub fn execute(def: &TestDef) -> Result<WorkloadOutput, String> {
-    let op = Op::parse(&def.operation.op)?;
     let inp = inputs(def);
-    let a = inp.a;
-    let need_b = |b: &Option<Data>| -> Result<Data, String> {
-        b.clone()
-            .ok_or_else(|| format!("op '{}' butuh dua operand", def.operation.op))
-    };
+    execute_inputs(def, &inp)
+}
+
+/// Eksekusi workload dengan input yang sudah disiapkan.
+pub fn execute_inputs(def: &TestDef, inp: &Inputs) -> Result<WorkloadOutput, String> {
+    let op = Op::parse(&def.operation.op)?;
 
     let out = match op {
-        Op::Add => bin(a, need_b(&inp.b)?, ScalarOp::Add)?,
-        Op::Sub => bin(a, need_b(&inp.b)?, ScalarOp::Sub)?,
-        Op::Mul => bin(a, need_b(&inp.b)?, ScalarOp::Mul)?,
-        Op::Fma => fma(a, need_b(&inp.b)?, inp.c)?,
-        Op::MatMul => matmul(a, need_b(&inp.b)?)?,
-        Op::Compare => bin(a, need_b(&inp.b)?, ScalarOp::Compare)?,
-        Op::ReduceSum => reduce_sum(a),
-        Op::Copy => copy(a),
-        Op::MemSeq => mem_pattern(a, false),
-        Op::MemRand => mem_pattern(a, true),
+        Op::Add => bin(&inp.a, need_b(def, inp.b.as_ref())?, ScalarOp::Add)?,
+        Op::Sub => bin(&inp.a, need_b(def, inp.b.as_ref())?, ScalarOp::Sub)?,
+        Op::Mul => bin(&inp.a, need_b(def, inp.b.as_ref())?, ScalarOp::Mul)?,
+        Op::Fma => fma(&inp.a, need_b(def, inp.b.as_ref())?, inp.c.as_ref())?,
+        Op::MatMul => matmul(&inp.a, need_b(def, inp.b.as_ref())?)?,
+        Op::Compare => bin(&inp.a, need_b(def, inp.b.as_ref())?, ScalarOp::Compare)?,
+        Op::ReduceSum => reduce_sum(&inp.a),
+        Op::Copy => copy(&inp.a),
+        Op::MemSeq => mem_pattern(&inp.a, false),
+        Op::MemRand => mem_pattern(&inp.a, true),
         Op::AtomicAdd => Partial {
-            data: crate::exec_parallel::atomic_add(def, a)?,
+            data: crate::exec_parallel::atomic_add(def, &inp.a)?,
         },
         Op::ParallelSum => Partial {
-            data: crate::exec_parallel::parallel_sum(a)?,
+            data: crate::exec_parallel::parallel_sum(&inp.a)?,
         },
     };
 
@@ -51,6 +54,10 @@ pub fn execute(def: &TestDef) -> Result<WorkloadOutput, String> {
         elements,
         bytes,
     })
+}
+
+fn need_b<'a>(def: &TestDef, b: Option<&'a Data>) -> Result<&'a Data, String> {
+    b.ok_or_else(|| format!("op '{}' butuh dua operand", def.operation.op))
 }
 
 struct Partial {
@@ -65,7 +72,7 @@ enum ScalarOp {
     Compare,
 }
 
-fn bin(a: Data, b: Data, op: ScalarOp) -> Result<Partial, String> {
+fn bin(a: &Data, b: &Data, op: ScalarOp) -> Result<Partial, String> {
     if a.len() != b.len() {
         return Err(format!("panjang tidak cocok: {} vs {}", a.len(), b.len()));
     }
@@ -73,7 +80,7 @@ fn bin(a: Data, b: Data, op: ScalarOp) -> Result<Partial, String> {
         data: match (a, b) {
             (Data::F32(x), Data::F32(y)) => Data::F32(
                 x.iter()
-                    .zip(&y)
+                    .zip(y.iter())
                     .map(|(p, q)| match op {
                         ScalarOp::Add => p + q,
                         ScalarOp::Sub => p - q,
@@ -84,7 +91,7 @@ fn bin(a: Data, b: Data, op: ScalarOp) -> Result<Partial, String> {
             ),
             (Data::U64(x), Data::U64(y)) => Data::U64(
                 x.iter()
-                    .zip(&y)
+                    .zip(y.iter())
                     .map(|(p, q)| match op {
                         ScalarOp::Add => p.wrapping_add(*q),
                         ScalarOp::Sub => p.wrapping_sub(*q),
@@ -95,7 +102,7 @@ fn bin(a: Data, b: Data, op: ScalarOp) -> Result<Partial, String> {
             ),
             (Data::I64(x), Data::I64(y)) => Data::I64(
                 x.iter()
-                    .zip(&y)
+                    .zip(y.iter())
                     .map(|(p, q)| match op {
                         ScalarOp::Add => p.wrapping_add(*q),
                         ScalarOp::Sub => p.wrapping_sub(*q),
@@ -109,7 +116,7 @@ fn bin(a: Data, b: Data, op: ScalarOp) -> Result<Partial, String> {
     })
 }
 
-fn fma(a: Data, b: Data, c: Option<Data>) -> Result<Partial, String> {
+fn fma(a: &Data, b: &Data, c: Option<&Data>) -> Result<Partial, String> {
     let Some(c) = c else {
         return Err("fma butuh tiga operand".into());
     };
@@ -117,8 +124,8 @@ fn fma(a: Data, b: Data, c: Option<Data>) -> Result<Partial, String> {
         (Data::F32(x), Data::F32(y), Data::F32(z)) => Ok(Partial {
             data: Data::F32(
                 x.iter()
-                    .zip(&y)
-                    .zip(&z)
+                    .zip(y.iter())
+                    .zip(z.iter())
                     .map(|((p, q), r)| p * q + r)
                     .collect(),
             ),
@@ -128,8 +135,8 @@ fn fma(a: Data, b: Data, c: Option<Data>) -> Result<Partial, String> {
 }
 
 /// Matrix multiplication bentuk n×n (n = floor(sqrt(elements))).
-fn matmul(a: Data, b: Data) -> Result<Partial, String> {
-    let (Data::F32(x), Data::F32(y)) = (&a, &b) else {
+fn matmul(a: &Data, b: &Data) -> Result<Partial, String> {
+    let (Data::F32(x), Data::F32(y)) = (a, b) else {
         return Err("matmul hanya mendukung f32".into());
     };
     let n = (x.len() as f64).sqrt().floor() as usize;
@@ -148,7 +155,7 @@ fn matmul(a: Data, b: Data) -> Result<Partial, String> {
     Ok(Partial { data: Data::F32(c) })
 }
 
-fn reduce_sum(a: Data) -> Partial {
+fn reduce_sum(a: &Data) -> Partial {
     let data = match a {
         Data::F32(v) => Data::F32(vec![v.iter().sum::<f32>()]),
         Data::U64(v) => Data::U64(vec![v.iter().fold(0u64, |acc, x| acc.wrapping_add(*x))]),
@@ -157,31 +164,27 @@ fn reduce_sum(a: Data) -> Partial {
     Partial { data }
 }
 
-fn copy(a: Data) -> Partial {
-    Partial { data: a }
+fn copy(a: &Data) -> Partial {
+    Partial { data: a.clone() }
 }
 
 /// Sentuh semua elemen (seq) atau urutan pseudo-acak — dua jalur memory berbeda
 /// untuk latency test. Output = input (data tidak diubah).
-fn mem_pattern(a: Data, random: bool) -> Partial {
-    let n = match &a {
-        Data::F32(v) => v.len(),
-        Data::U64(v) => v.len(),
-        Data::I64(v) => v.len(),
-    };
+fn mem_pattern(a: &Data, random: bool) -> Partial {
+    let n = a.len();
     let order = if random {
         fisher_yates(n)
     } else {
         (0..n).collect::<Vec<_>>()
     };
     // Checksum pada urutan order — memaksa akses sesuai pola.
-    let _checksum: f64 = match &a {
+    let _checksum: f64 = match a {
         Data::F32(v) => order.iter().map(|&i| v[i] as f64).sum(),
         Data::U64(v) => order.iter().map(|&i| v[i] as f64).sum(),
         Data::I64(v) => order.iter().map(|&i| v[i] as f64).sum(),
     };
     std::hint::black_box(_checksum);
-    Partial { data: a }
+    Partial { data: a.clone() }
 }
 
 /// Fisher-Yates dengan RNG deterministik dari panjang data.
@@ -235,9 +238,13 @@ mode = "exact"
     #[test]
     fn integer_add_wraps_without_float_conversion() {
         assert_eq!(
-            bin(Data::U64(vec![u64::MAX]), Data::U64(vec![1]), ScalarOp::Add)
-                .unwrap()
-                .data,
+            bin(
+                &Data::U64(vec![u64::MAX]),
+                &Data::U64(vec![1]),
+                ScalarOp::Add
+            )
+            .unwrap()
+            .data,
             Data::U64(vec![0])
         );
     }
@@ -246,8 +253,8 @@ mode = "exact"
     fn integer_compare_distinguishes_values_above_f64_precision() {
         assert_eq!(
             bin(
-                Data::U64(vec![1 << 53]),
-                Data::U64(vec![(1 << 53) + 1]),
+                &Data::U64(vec![1 << 53]),
+                &Data::U64(vec![(1 << 53) + 1]),
                 ScalarOp::Compare
             )
             .unwrap()
@@ -303,6 +310,25 @@ mode = "exact"
     }
 
     #[test]
+    fn execute_inputs_matches_execute() {
+        for (op, dtype) in [
+            ("add", "f32"),
+            ("fma", "f32"),
+            ("matmul", "f32"),
+            ("reduce_sum", "u64"),
+            ("copy", "f32"),
+            ("atomic_add", "u64"),
+            ("parallel_sum", "u64"),
+        ] {
+            let d = def(op, dtype, 64);
+            let inp = utbh_core::inputs(&d);
+            let direct = execute(&d).unwrap().data;
+            let prepared = execute_inputs(&d, &inp).unwrap().data;
+            assert_eq!(direct, prepared, "op {}", op);
+        }
+    }
+
+    #[test]
     fn fisher_yates_permutation() {
         let mut p = fisher_yates(32);
         p.sort_unstable();
@@ -312,7 +338,7 @@ mode = "exact"
     #[test]
     fn mem_pattern_deterministic() {
         let a = Data::U64(vec![1, 2, 3, 4, 5, 6, 7, 8]);
-        let (Data::U64(x), Data::U64(y)) = (a.clone(), mem_pattern(a, true).data) else {
+        let (Data::U64(x), Data::U64(y)) = (a.clone(), mem_pattern(&a, true).data) else {
             panic!("u64");
         };
         assert_eq!(x, y);

@@ -13,6 +13,8 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/), versi mengikut
 
 ### Changed
 
+- Benchmark menyiapkan input deterministik sekali di luar region pengukuran;
+  latency tidak lagi memasukkan waktu generasi input/RNG.
 - `utbh compare` menolak membandingkan hasil dengan `schema_version` berbeda.
 - Nama test duplikat antar file/suite kini error, bukan dibuang diam-diam.
 
@@ -25,6 +27,10 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/), versi mengikut
 - Profil dengan nama suite kosong ditolak.
 - GFLOPS hanya dihitung untuk operasi floating-point; operasi integer dan
   `compare` tidak lagi dilaporkan sebagai FLOP.
+- Trace tidak lagi mengklaim event cycle-level yang tidak pernah diambil;
+  event yang tidak tersedia ditandai eksplisit.
+- `memory.channels` tidak lagi diisi angka palsu 2; 0 berarti tidak diketahui
+  dan dirender sebagai `unknown`.
 - Hasil dan trace ditulis atomik (tidak ada JSON setengah jadi).
 - `utbh report` pada direktori hasil yang belum ada memberi pesan jelas.
 - `RunResult::load` menolak hasil dari schema yang lebih baru.
